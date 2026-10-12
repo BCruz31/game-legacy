@@ -1,4 +1,6 @@
 {
+  "access": "everyone",
   "open": true,
-  "code": "6edd1d136727fbebdfdba01099f37e6c6fe0f206f1c53f9825099950c4469d96"
+  "code": "6edd1d136727fbebdfdba01099f37e6c6fe0f206f1c53f9825099950c4469d96",
+  "mod_code": "77c81c6b038b0642da05e68562991a626da32725a09ada5eb83366247e4065cf"
 }
