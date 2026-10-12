@@ -1,0 +1,35 @@
+name: Publish isolated Legacy assistant test
+on:
+  push:
+    paths:
+      - .github/workflows/publish-assistant-test.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Pages without touching the live root
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 1
+      - name: Download previously exported test build
+        env:
+          ARTIFACT_URL: 'https://sdmntpreastus2.oaiusercontent.com/files/00000000-1c0c-81f6-8352-1c8b3f9274b3/raw?se=2026-10-12T20%3A09%3A18Z&sp=r&sv=2026-02-06&sr=b&scid=1bc0562b-4eef-5e5d-98c3-339bc0ed9d1f&skoid=db055408-822b-485f-92f8-bfeb3ea92408&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-12T13%3A08%3A16Z&ske=2026-10-13T13%3A08%3A16Z&sks=b&skv=2026-02-06&sig=d6gBt96qpkQdYMni/MQpuu84oEtFbIanTxc/EKUYvX8%3D'
+        run: |
+          mkdir -p assistant-test
+          curl --fail --location --retry 3 "$ARTIFACT_URL" -o /tmp/legacy-test.zip
+          unzip -oq /tmp/legacy-test.zip -d assistant-test/
+          test -s assistant-test/index.html
+          test -s assistant-test/index.wasm
+          test -s assistant-test/index.pck
+      - name: Publish only assistant-test folder
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@users.noreply.github.com
+          git add assistant-test/
+          git diff --cached --quiet && exit 0
+          git commit -m "Publish isolated assistant test build"
+          git push origin HEAD:gh-pages
