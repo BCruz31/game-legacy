@@ -100,32 +100,7 @@ body {
 <link rel="apple-touch-icon" href="index.180x180.png">
 <meta name="apple-mobile-web-app-title" content="Legacy">
 <meta name="theme-color" content="#07111b">
-<style>
-html,body{background:#000}
-#rotate-note{display:none;position:fixed;inset:0;z-index:99;background:#000;color:#cfe3f5;font:600 20px sans-serif;align-items:center;justify-content:center;text-align:center;padding:24px}
-@media (orientation: portrait){#rotate-note{display:flex}}
-</style>
-<script>
-(function(){
-  // Landscape only, true fullscreen. Chrome only grants fullscreen on an activating gesture
-  // (finger lift: pointerup / touchend / click, not touch-down), so ask on those, synchronously.
-  function fsElement(){return document.fullscreenElement||document.webkitFullscreenElement;}
-  function lock(){
-    if(fsElement())return;
-    var el=document.documentElement;
-    var go=null;
-    try{go=el.requestFullscreen?el.requestFullscreen({navigationUI:'hide'}):(el.webkitRequestFullscreen?el.webkitRequestFullscreen():null);}catch(e){}
-    Promise.resolve(go).catch(function(){}).then(function(){
-      try{screen.orientation.lock('landscape').catch(function(){});}catch(e){}
-    });
-  }
-  ['pointerup','touchend','click'].forEach(function(t){window.addEventListener(t,lock,{passive:true,capture:true});});
-  window.addEventListener('DOMContentLoaded',function(){
-    var d=document.createElement('div');d.id='rotate-note';d.textContent='Tap to play \u2014 Legacy runs in landscape';
-    document.body.appendChild(d);
-  });
-})();
-</script>
+<style>html,body{background:#000}</style>
 	</head>
 	<body>
 		<canvas id="canvas">
