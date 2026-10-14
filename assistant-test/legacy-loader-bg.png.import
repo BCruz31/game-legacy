@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://drdlx2mc6gs24"
-path="res://.godot/imported/legacy-warning-loading-clean.jpg-21c5a2bf6717983791e4d63bcde79810.ctex"
+uid="uid://c0knv8ddcsnmc"
+path="res://.godot/imported/legacy-loader-bg.png-6990c23db244f54fa5e694a0b8407bf0.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://build/web/legacy-warning-loading-clean.jpg"
-dest_files=["res://.godot/imported/legacy-warning-loading-clean.jpg-21c5a2bf6717983791e4d63bcde79810.ctex"]
+source_file="res://build/web/legacy-loader-bg.png"
+dest_files=["res://.godot/imported/legacy-loader-bg.png-6990c23db244f54fa5e694a0b8407bf0.ctex"]
 
 [params]
 
