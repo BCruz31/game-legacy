@@ -103,24 +103,69 @@ body {
 <style>html,body{background:#000}</style>
 	
 <style>
-#legacy-warning-loading {position:fixed;inset:0;z-index:1000;pointer-events:none;background:#02040b url('legacy-warning-loading.jpg') center/contain no-repeat}
+  /* The real Godot engine still loads and reports real progress. Only its
+     default splash and bar are hidden; the warning is the visual replacement. */
+  #status { visibility:hidden !important; pointer-events:none !important; }
+  #legacy-loading-screen {
+    position:fixed; inset:0; z-index:2147483600; overflow:hidden;
+    background:#02040b; display:flex; align-items:center; justify-content:center;
+    pointer-events:auto; touch-action:none;
+  }
+  #legacy-loading-art {
+    position:absolute; inset:0; background-image:url('legacy-warning-loading-clean.jpg');
+    background-size:contain; background-position:center; background-repeat:no-repeat;
+  }
+  #legacy-loading-controls {
+    position:absolute; left:50%; bottom:max(3.5%,env(safe-area-inset-bottom));
+    transform:translateX(-50%); width:min(72vw,330px); text-align:center;
+    background:rgba(2,5,15,.92); border:1px solid rgba(16,210,255,.6);
+    box-shadow:0 0 16px rgba(4,146,238,.45); border-radius:12px;
+    padding:9px 14px 12px; box-sizing:border-box;
+    font:700 clamp(11px,2.2vw,15px) system-ui,sans-serif; letter-spacing:2px;
+    color:#d9f8ff; text-shadow:0 0 8px #27a9ed;
+  }
+  #legacy-loading-track {margin-top:7px; height:8px; background:#111c35;
+    border:1px solid #227da6; border-radius:8px; overflow:hidden;}
+  #legacy-loading-fill {height:100%; width:0; background:linear-gradient(90deg,#1168ba,#13e1fc);
+    box-shadow:0 0 10px #18c8f9; transition:width 100ms linear;}
+  #legacy-loading-screen.error #legacy-loading-controls {border-color:#ff4979;}
+  @media (orientation:portrait) {
+    #legacy-loading-controls {bottom:max(12%,env(safe-area-inset-bottom)); width:min(84vw,360px);}
+  }
 </style>
 <script>
-document.addEventListener('DOMContentLoaded',function(){
-  const status=document.getElementById('status');
-  const cover=document.createElement('div');
-  cover.id='legacy-warning-loading';
-  document.body.appendChild(cover);
-  if(!status)return;
-  let shown=false;
-  const watch=new MutationObserver(function(){
-    const v=getComputedStyle(status).visibility;
-    if(v==='visible')shown=true;
-    if(shown && v==='hidden'){cover.remove();watch.disconnect();}
-    if(v==='visible' && status.querySelector('#status-notice') && getComputedStyle(document.getElementById('status-notice')).display==='block'){cover.remove();watch.disconnect();}
+(function(){
+  function el(id){return document.getElementById(id);}
+  document.addEventListener('DOMContentLoaded',function(){
+    if(el('legacy-loading-screen'))return;
+    const screen=document.createElement('div');screen.id='legacy-loading-screen';
+    screen.innerHTML='<div id="legacy-loading-art"></div><div id="legacy-loading-controls"><span id="legacy-loading-label">LOADING LEGACY...</span><div id="legacy-loading-track"><div id="legacy-loading-fill"></div></div></div>';
+    document.body.appendChild(screen);
   });
-  watch.observe(status,{attributes:true,attributeFilter:['style','class'],subtree:true});
-});
+  window.legacyWarningProgress=function(current,total){
+    const fill=el('legacy-loading-fill'),label=el('legacy-loading-label');
+    if(!fill || !label)return;
+    if(total>0 && current>=0){
+      const pct=Math.min(100,Math.max(0,Math.round(current/total*100)));
+      fill.style.width=pct+'%';
+      label.textContent='LOADING LEGACY... '+pct+'%';
+    }else{label.textContent='LOADING LEGACY...';}
+  };
+  window.legacyWarningReady=function(){
+    // Godot has finished initializing its first warning scene; reveal the
+    // actual interactive OK button and its sound/transition implementation.
+    requestAnimationFrame(function(){requestAnimationFrame(function(){
+      const screen=el('legacy-loading-screen');if(screen)screen.remove();
+    });});
+  };
+  window.legacyWarningFailure=function(err){
+    const screen=el('legacy-loading-screen');
+    if(screen)screen.classList.add('error');
+    const label=el('legacy-loading-label');
+    if(label)label.textContent='LOADING FAILED — RELOAD TO RETRY';
+    console.error('Legacy failed to load',err);
+  };
+})();
 </script>
 </head>
 	<body>
@@ -179,6 +224,7 @@ const engine = new Engine(GODOT_CONFIG);
 	}
 
 	function displayFailureNotice(err) {
+		window.legacyWarningFailure(err);
 		console.error(err);
 		if (err instanceof Error) {
 			setStatusNotice(err.message);
@@ -230,6 +276,7 @@ const engine = new Engine(GODOT_CONFIG);
 		setStatusMode('progress');
 		engine.startGame({
 			'onProgress': function (current, total) {
+				window.legacyWarningProgress(current,total);
 				if (current > 0 && total > 0) {
 					statusProgress.value = current;
 					statusProgress.max = total;
@@ -240,6 +287,7 @@ const engine = new Engine(GODOT_CONFIG);
 			},
 		}).then(() => {
 			setStatusMode('hidden');
+			window.legacyWarningReady();
 		}, displayFailureNotice);
 	}
 }());
