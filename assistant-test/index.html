@@ -101,7 +101,28 @@ body {
 <meta name="apple-mobile-web-app-title" content="Legacy">
 <meta name="theme-color" content="#07111b">
 <style>html,body{background:#000}</style>
-	</head>
+	
+<style>
+#legacy-warning-loading {position:fixed;inset:0;z-index:1000;pointer-events:none;background:#02040b url('legacy-warning-loading.jpg') center/contain no-repeat}
+</style>
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  const status=document.getElementById('status');
+  const cover=document.createElement('div');
+  cover.id='legacy-warning-loading';
+  document.body.appendChild(cover);
+  if(!status)return;
+  let shown=false;
+  const watch=new MutationObserver(function(){
+    const v=getComputedStyle(status).visibility;
+    if(v==='visible')shown=true;
+    if(shown && v==='hidden'){cover.remove();watch.disconnect();}
+    if(v==='visible' && status.querySelector('#status-notice') && getComputedStyle(document.getElementById('status-notice')).display==='block'){cover.remove();watch.disconnect();}
+  });
+  watch.observe(status,{attributes:true,attributeFilter:['style','class'],subtree:true});
+});
+</script>
+</head>
 	<body>
 		<canvas id="canvas">
 			Your browser does not support the canvas tag.
@@ -119,7 +140,7 @@ body {
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":18918896,"index.wasm":38034280},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":21158748,"index.wasm":38034280},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
