@@ -106,7 +106,14 @@ body {
   #status { visibility:hidden !important; pointer-events:none !important; }
   #legacy-loading-screen {position:fixed;inset:0;z-index:2147483600;overflow:hidden;
     background:#030613;pointer-events:auto;touch-action:none;}
-  #legacy-loading-screen.full-art #legacy-loader-bg,\n  #legacy-loading-screen.full-art #legacy-loader-left,\n  #legacy-loading-screen.full-art #legacy-loader-right,\n  #legacy-loading-screen.full-art #legacy-loader-panel,\n  #legacy-loading-screen.full-art #legacy-loader-logo,\n  #legacy-loading-screen.full-art [id^="legacy-loader-name"] {display:none;}\n  #legacy-loading-screen.full-art {background-image:url("warning_full_landscape.jpg");background-size:cover;background-position:center;}\n  @media (orientation:portrait) {#legacy-loading-screen.full-art {background-image:url("warning_full_portrait.jpg");}}\n  #legacy-loading-screen img {position:absolute;object-fit:contain;max-width:none;
+  #legacy-loading-screen.full-art #legacy-loader-bg, 
+  #legacy-loading-screen.full-art #legacy-loader-left, 
+  #legacy-loading-screen.full-art #legacy-loader-right, 
+  #legacy-loading-screen.full-art #legacy-loader-panel, 
+  #legacy-loading-screen.full-art #legacy-loader-logo, 
+  #legacy-loading-screen.full-art [id^="legacy-loader-name"] {display:none;} 
+  #legacy-loading-screen.full-art {background-image:url("warning_full_landscape.jpg");background-size:cover;background-position:center;}
+  @media (orientation:portrait) {#legacy-loading-screen.full-art {background-image:url("warning_full_portrait.jpg");}}\n  #legacy-loading-screen img {position:absolute;object-fit:contain;max-width:none;
     max-height:none;pointer-events:none;}
   #legacy-loader-bg {position:absolute;inset:-5.5%;width:111%;height:111%;
     background:url('legacy-loader-bg.png') center/cover no-repeat;}
@@ -159,7 +166,14 @@ body {
       '<img id="legacy-loader-name-kaien" src="legacy-loader-name-kaien.png" alt="" onerror="this.hidden=true">'+
       '<div id="legacy-loading-controls"><span id="legacy-loading-label">LOADING</span>'+
       '<div id="legacy-loading-track"><div id="legacy-loading-fill"></div></div></div>';
-    document.body.appendChild(screen);\n    const fullArt=new Image();\n    fullArt.onload=function(){screen.classList.add("full-art");};\n    fullArt.src=matchMedia("(orientation:portrait)").matches?"warning_full_portrait.jpg":"warning_full_landscape.jpg";\n    addEventListener("resize",function(){\n      const next=new Image();\n      next.onload=function(){screen.classList.add("full-art");};\n      next.src=matchMedia("(orientation:portrait)").matches?"warning_full_portrait.jpg":"warning_full_landscape.jpg";\n    });
+    document.body.appendChild(screen);
+    const fullArt=new Image();
+    fullArt.onload=function(){screen.classList.add("full-art");};
+    fullArt.src=matchMedia("(orientation:portrait)").matches?"warning_full_portrait.jpg":"warning_full_landscape.jpg";
+    addEventListener("resize",function(){\n      const next=new Image();
+      next.onload=function(){screen.classList.add("full-art");};
+      next.src=matchMedia("(orientation:portrait)").matches?"warning_full_portrait.jpg":"warning_full_landscape.jpg";
+    });
   });
   window.legacyWarningProgress=function(current,total){
     const fill=el('legacy-loading-fill'),label=el('legacy-loading-label');
