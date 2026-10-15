@@ -113,7 +113,8 @@ body {
   #legacy-loading-screen.full-art #legacy-loader-logo, 
   #legacy-loading-screen.full-art [id^="legacy-loader-name"] {display:none;} 
   #legacy-loading-screen.full-art {background-image:url("warning_full_landscape.jpg");background-size:cover;background-position:center;}
-  @media (orientation:portrait) {#legacy-loading-screen.full-art {background-image:url("warning_full_portrait.jpg");}}\n  #legacy-loading-screen img {position:absolute;object-fit:contain;max-width:none;
+  @media (orientation:portrait) {#legacy-loading-screen.full-art {background-image:url("warning_full_portrait.jpg");}}
+  #legacy-loading-screen img {position:absolute;object-fit:contain;max-width:none;
     max-height:none;pointer-events:none;}
   #legacy-loader-bg {position:absolute;inset:-5.5%;width:111%;height:111%;
     background:url('legacy-loader-bg.png') center/cover no-repeat;}
@@ -170,7 +171,8 @@ body {
     const fullArt=new Image();
     fullArt.onload=function(){screen.classList.add("full-art");};
     fullArt.src=matchMedia("(orientation:portrait)").matches?"warning_full_portrait.jpg":"warning_full_landscape.jpg";
-    addEventListener("resize",function(){\n      const next=new Image();
+    addEventListener("resize",function(){
+      const next=new Image();
       next.onload=function(){screen.classList.add("full-art");};
       next.src=matchMedia("(orientation:portrait)").matches?"warning_full_portrait.jpg":"warning_full_landscape.jpg";
     });
@@ -215,7 +217,7 @@ body {
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":30624224,"index.wasm":38034280},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":30624256,"index.wasm":38034280},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
