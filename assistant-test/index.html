@@ -113,6 +113,8 @@ body {
   #legacy-loader-left {left:9%;top:7%;width:30%;height:88%;z-index:4;}
   #legacy-loader-right {left:61%;top:4%;width:30%;height:91%;z-index:5;}
   #legacy-loader-panel {left:31.5%;top:10%;width:37%;height:71%;z-index:10;}
+  #legacy-loader-name-left {left:15.5%;top:2.5%;width:22%;height:15%;z-index:16;}
+  #legacy-loader-name-right {left:69.5%;top:2.5%;width:22%;height:15%;z-index:16;}
   #legacy-loader-logo {left:1.5%;top:14%;width:15%;height:72%;z-index:20;}
   #legacy-loader-name-zaria {left:15.5%;top:1.5%;width:19%;height:15%;z-index:21;}
   #legacy-loader-name-kaien {left:69%;top:1.5%;width:19%;height:15%;z-index:21;}
@@ -134,6 +136,8 @@ body {
     #legacy-loader-name-zaria {left:1.5%;top:11.5%;width:32%;height:12%;}
     #legacy-loader-name-kaien {left:67.5%;top:11.5%;width:31%;height:12%;}
     #legacy-loader-panel {left:26.5%;top:23%;width:47%;height:66%;}
+    #legacy-loader-name-left {left:1.5%;top:14.5%;width:30%;height:11.5%;}
+    #legacy-loader-name-right {left:68.5%;top:14.5%;width:30%;height:11.5%;}
     #legacy-loading-controls {left:26%;top:85.5%;width:48%;height:10.5%;
       border-radius:11px;font-size:clamp(10px,2.5vw,16px);}
   }
@@ -148,9 +152,11 @@ body {
       '<img id="legacy-loader-left" src="legacy-loader-left.png" alt="">'+
       '<img id="legacy-loader-right" src="legacy-loader-right.png" alt="">'+
       '<img id="legacy-loader-panel" src="legacy-loader-panel.png" alt="">'+
+      '<img id="legacy-loader-name-left" src="legacy-loader-name-left.png" onerror="this.hidden=true" alt="">'+
+      '<img id="legacy-loader-name-right" src="legacy-loader-name-right.png" onerror="this.hidden=true" alt="">'+
       '<img id="legacy-loader-logo" src="legacy-loader-logo.png" alt="">'+
-      '<img id="legacy-loader-name-zaria" src="legacy-loader-name-zaria.png" alt="" onerror="this.style.display=\'none\'">'+
-      '<img id="legacy-loader-name-kaien" src="legacy-loader-name-kaien.png" alt="" onerror="this.style.display=\'none\'">'+
+      '<img id="legacy-loader-name-zaria" src="legacy-loader-name-zaria.png" alt="" onerror="this.hidden=true">'+
+      '<img id="legacy-loader-name-kaien" src="legacy-loader-name-kaien.png" alt="" onerror="this.hidden=true">'+
       '<div id="legacy-loading-controls"><span id="legacy-loading-label">LOADING</span>'+
       '<div id="legacy-loading-track"><div id="legacy-loading-fill"></div></div></div>';
     document.body.appendChild(screen);
@@ -195,7 +201,7 @@ body {
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":21707640,"index.wasm":38034280},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":21707928,"index.wasm":38034280},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
