@@ -129,8 +129,8 @@ html,body{background:#000}
 	<script src="legacy_voice.js"></script><style>
 #legacy-web-loading{position:fixed;inset:0;z-index:10000;pointer-events:none;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden}
 #legacy-web-loading img{width:100%;height:100%;object-fit:cover}
-#legacy-web-loading .ok-mask{position:absolute;background:#050b1c;left:27.5%;top:82.5%;width:45%;height:10%}
-@media (orientation:landscape){#legacy-web-loading .ok-mask{left:37%;top:78%;width:26%;height:14%}}
+#legacy-web-loading .ok-mask{position:absolute;inset:66% 0 0;background:linear-gradient(to bottom,transparent 0%,rgba(0,0,0,.75) 55%,#000 100%)}
+
 #status,#status-progress,#status-indeterminate,#status-notice{display:none!important}
 </style><script>
 document.addEventListener('DOMContentLoaded',function(){
@@ -163,7 +163,7 @@ document.addEventListener('DOMContentLoaded',function(){
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":27815132,"index.wasm":38034280},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":27815596,"index.wasm":38034280},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
