@@ -131,19 +131,43 @@ html,body{background:#000}
 #legacy-web-loading img{width:100%;height:100%;object-fit:cover}
 #legacy-web-loading .ok-mask{position:absolute;inset:66% 0 0;background:linear-gradient(to bottom,transparent 0%,rgba(0,0,0,.75) 55%,#000 100%)}
 
-#status,#status-progress,#status-indeterminate,#status-notice{display:none!important}
+#legacy-load-track{position:absolute;left:26%;top:83%;width:48%;height:18px;box-sizing:border-box;border:2px solid #f329c6;border-radius:8px;background:#070c25;box-shadow:0 0 12px #1d8cff;overflow:hidden}
+#legacy-load-fill{height:100%;width:0;background:repeating-linear-gradient(90deg,#00d6ff 0,#00d6ff 13px,#183e9b 13px,#183e9b 16px);transition:width .12s linear}
+#legacy-load-label{position:absolute;left:0;top:88%;width:100%;text-align:center;color:#e7f5ff;font:700 16px sans-serif;text-shadow:0 0 8px #008cff}
+@media (orientation:landscape){#legacy-load-track{left:37%;top:78%;width:26%}#legacy-load-label{top:85%}}
+#status,#status-progress,#status-indeterminate,#status-notice{visibility:hidden!important}
 </style><script>
 document.addEventListener('DOMContentLoaded',function(){
   var splash=document.createElement('div');splash.id='legacy-web-loading';
-  splash.innerHTML='<picture><source media="(orientation:landscape)" srcset="legacy-loading-landscape.png"><img src="legacy-loading-portrait.png" alt="Legacy Loading"></picture><div class="ok-mask"></div>';
+  splash.innerHTML='<picture><source media="(orientation:landscape)" srcset="legacy-loading-landscape.png"><img src="legacy-loading-portrait.png" alt="Legacy Loading"></picture><div class="ok-mask"></div><div id="legacy-load-track"><div id="legacy-load-fill"></div></div><div id="legacy-load-label">LOADING 0%</div>';
   document.body.appendChild(splash);
-  var canvas=document.querySelector('canvas');
-  if(canvas){var watch=new MutationObserver(function(){
-    if(canvas.style.display!=='none' && canvas.width>0 && canvas.height>0 && document.querySelector('#status')?.style.display==='none'){
+  var fill=document.getElementById('legacy-load-fill'),label=document.getElementById('legacy-load-label');
+  var source=document.getElementById('status-progress'),canvas=document.querySelector('canvas');
+  function sync(){
+    if(!source||!source.isConnected)source=document.getElementById('status-progress');
+    if(!source)return;
+    var bar=source.firstElementChild||source;
+    var pct=0;
+    var style=bar.style.width||'';
+    if(style.endsWith('%'))pct=parseFloat(style);
+    else if(source.clientWidth>0)pct=100*bar.getBoundingClientRect().width/source.getBoundingClientRect().width;
+    if(Number.isFinite(pct)){
+      pct=Math.max(0,Math.min(100,pct));
+      fill.style.width=pct+'%';
+      label.textContent='LOADING '+Math.round(pct)+'%';
+    }
+  }
+  var watch=new MutationObserver(function(){
+    sync();
+    // Remove the HTML loader once Godot has switched to its canvas.
+    if(canvas&&canvas.width>0&&canvas.height>0&&getComputedStyle(canvas).display!=='none'&&
+       document.getElementById('status')?.style.display==='none'){
       splash.remove();watch.disconnect();
     }
-  });watch.observe(document.body,{attributes:true,childList:true,subtree:true});}
-  window.addEventListener('pagehide',function(){splash.remove()},{once:true});
+  });
+  watch.observe(document.body,{attributes:true,childList:true,subtree:true,attributeFilter:['style','class']});
+  sync();
+  window.addEventListener('pagehide',function(){watch.disconnect();splash.remove()},{once:true});
 });
 </script></head>
 	<body>
