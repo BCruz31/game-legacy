@@ -157,16 +157,29 @@ document.addEventListener('DOMContentLoaded',function(){
       label.textContent='LOADING '+Math.round(pct)+'%';
     }
   }
+  // Observe Godot's own progress element, not our overlay: avoid mutation loops.
   var watch=new MutationObserver(function(){
     sync();
-    // Remove the HTML loader once Godot has switched to its canvas.
-    if(canvas&&canvas.width>0&&canvas.height>0&&getComputedStyle(canvas).display!=='none'&&
-       document.getElementById('status')?.style.display==='none'){
-      splash.remove();watch.disconnect();
-    }
+    var status=document.getElementById('status');
+    var started=canvas&&canvas.width>0&&canvas.height>0&&
+      getComputedStyle(canvas).display!=='none'&&
+      (!status||getComputedStyle(status).display==='none');
+    if(started){splash.remove();watch.disconnect();}
   });
-  watch.observe(document.body,{attributes:true,childList:true,subtree:true,attributeFilter:['style','class']});
+  var status=document.getElementById('status');
+  if(status)watch.observe(status,{attributes:true,childList:true,subtree:true,attributeFilter:['style','class']});
+  if(source)watch.observe(source,{attributes:true,childList:true,subtree:true,attributeFilter:['style','class']});
   sync();
+  // Godot can start without toggling #status; never leave the overlay blocking play.
+  var poll=setInterval(function(){
+    if(!splash.isConnected){clearInterval(poll);return;}
+    sync();
+    var status=document.getElementById('status');
+    if(canvas&&canvas.width>0&&canvas.height>0&&getComputedStyle(canvas).display!=='none'&&
+      (!status||getComputedStyle(status).display==='none')){
+      splash.remove();watch.disconnect();clearInterval(poll);
+    }
+  },250);
   window.addEventListener('pagehide',function(){watch.disconnect();splash.remove()},{once:true});
 });
 </script></head>
