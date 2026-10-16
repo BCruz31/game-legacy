@@ -103,7 +103,7 @@ body {
 <style>
 html,body{background:#000}
 #rotate-note{display:none;position:fixed;inset:0;z-index:99;background:#000;color:#cfe3f5;font:600 20px sans-serif;align-items:center;justify-content:center;text-align:center;padding:24px}
-@media (orientation: portrait){#rotate-note{display:flex}}
+@media (orientation: portrait){#rotate-note{display:none}}
 </style>
 <script>
 (function(){
@@ -121,7 +121,7 @@ html,body{background:#000}
   }
   ['pointerup','touchend','click'].forEach(function(t){window.addEventListener(t,lock,{passive:true,capture:true});});
   window.addEventListener('DOMContentLoaded',function(){
-    var d=document.createElement('div');d.id='rotate-note';d.textContent='Tap to play \u2014 Legacy runs in landscape';
+    var d=document.createElement('div');d.id='rotate-note';d.textContent='';
     document.body.appendChild(d);
   });
 })();
