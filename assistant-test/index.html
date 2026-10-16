@@ -126,7 +126,26 @@ html,body{background:#000}
   });
 })();
 </script>
-	<script src="legacy_voice.js"></script></head>
+	<script src="legacy_voice.js"></script><style>
+#legacy-web-loading{position:fixed;inset:0;z-index:10000;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#legacy-web-loading img{width:100%;height:100%;object-fit:cover}
+#legacy-web-loading .ok-mask{position:absolute;background:#050b1c;left:27.5%;top:82.5%;width:45%;height:10%}
+@media (orientation:landscape){#legacy-web-loading .ok-mask{left:37%;top:78%;width:26%;height:14%}}
+#status,#status-progress,#status-indeterminate,#status-notice{display:none!important}
+</style><script>
+document.addEventListener('DOMContentLoaded',function(){
+  var splash=document.createElement('div');splash.id='legacy-web-loading';
+  splash.innerHTML='<picture><source media="(orientation:landscape)" srcset="legacy-loading-landscape.png"><img src="legacy-loading-portrait.png" alt="Legacy Loading"></picture><div class="ok-mask"></div>';
+  document.body.appendChild(splash);
+  var canvas=document.querySelector('canvas');
+  if(canvas){var watch=new MutationObserver(function(){
+    if(canvas.style.display!=='none' && canvas.width>0 && canvas.height>0 && document.querySelector('#status')?.style.display==='none'){
+      splash.remove();watch.disconnect();
+    }
+  });watch.observe(document.body,{attributes:true,childList:true,subtree:true});}
+  window.addEventListener('pagehide',function(){splash.remove()},{once:true});
+});
+</script></head>
 	<body>
 		<canvas id="canvas">
 			Your browser does not support the canvas tag.
@@ -144,7 +163,7 @@ html,body{background:#000}
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":27642704,"index.wasm":38034280},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":27643616,"index.wasm":38034280},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
