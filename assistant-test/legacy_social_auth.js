@@ -36,6 +36,9 @@
       sessionStorage.setItem(statusKey, 'Redirecting to Google');
       const url = new URL(project + '/auth/v1/authorize');
       url.searchParams.set('provider', provider);
+      // This bridge consumes access/refresh tokens from the URL fragment.
+      // Explicitly request implicit flow instead of a PKCE code we cannot exchange.
+      url.searchParams.set('flow_type', 'implicit');
       url.searchParams.set('redirect_to', destination);
       location.assign(url.toString());
       return true;
