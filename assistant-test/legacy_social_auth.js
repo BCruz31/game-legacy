@@ -14,6 +14,7 @@
     history.replaceState(null, '', location.pathname + location.search);
   }
   window.LegacySocialAuth = {
+    hasPending() { return !!pending; },
     start(provider) {
       if (!allowed.has(provider)) return false;
       const url = new URL(project + '/auth/v1/authorize');
