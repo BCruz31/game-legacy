@@ -4,10 +4,13 @@
   const project = 'https://euqmgzrcccaaupzsdqhj.supabase.co';
   const destination = 'https://bcruz31.github.io/game-legacy/assistant-test/';
   const allowed = new Set(['google', 'apple']);
-  let pending = '';
+  const pendingKey = 'legacy_google_oauth_pending';
+  let pending = sessionStorage.getItem(pendingKey) || '';
   const hash = new URLSearchParams(location.hash.slice(1));
   if (hash.has('access_token') && hash.has('refresh_token')) {
     pending = JSON.stringify({access_token: hash.get('access_token'), refresh_token: hash.get('refresh_token')});
+    sessionStorage.setItem(pendingKey, pending);
+    sessionStorage.setItem(pendingKey, pending);
     history.replaceState(null, '', location.pathname + location.search);
   } else if (hash.has('error_description') || hash.has('error')) {
     pending = JSON.stringify({error: hash.get('error_description') || hash.get('error')});
@@ -26,6 +29,7 @@
     take() {
       const value = pending;
       pending = '';
+      sessionStorage.removeItem(pendingKey);
       return value;
     }
   };
