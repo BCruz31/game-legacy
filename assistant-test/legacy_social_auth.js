@@ -43,6 +43,28 @@
       location.assign(url.toString());
       return true;
     },
+    offerPasswordSave(email, encodedPassword) {
+      if (!email || !encodedPassword) return false;
+      const wantsSave = window.confirm('Save your Legacy five-icon password to this phone?\\n\\nYour phone may offer Apple Passwords or Google Password Manager.');
+      if (!wantsSave) return true;
+      if (!navigator.credentials || !window.PasswordCredential) {
+        window.alert('This browser cannot request password-manager saving. Open Legacy in Safari or Chrome to use supported password saving.');
+        return true;
+      }
+      try {
+        const credential = new PasswordCredential({
+          id: email.trim().toLowerCase(),
+          password: encodedPassword,
+          name: 'Legacy'
+        });
+        navigator.credentials.store(credential).catch(() => {
+          window.alert('Password saving was not completed. You can still sign in with your five icons.');
+        });
+      } catch (_error) {
+        window.alert('Password saving is unavailable in this browser. Your Legacy account remains usable.');
+      }
+      return true;
+    },
     take() {
       const value = pending;
       pending = '';
