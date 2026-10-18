@@ -5,7 +5,6 @@
   const peers = new Map();
   const audio = new Map();
   let stream = null, enabled = false, transmitting = false, selfId = '';
-  let meterContext, analyser, source, gainNode, testing = false, gain = 1;
   const queue = [];
   const iceServers = [{urls: 'stun:stun.l.google.com:19302'}];
   const emit = (event, data) => queue.push({event, data});
@@ -13,14 +12,6 @@
     if (stream) return stream;
     stream = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation:true, noiseSuppression:true}, video:false});
     stream.getAudioTracks().forEach(t => t.enabled = false);
-    meterContext = new (window.AudioContext || window.webkitAudioContext)();
-    source = meterContext.createMediaStreamSource(stream);
-    analyser = meterContext.createAnalyser();
-    analyser.fftSize = 512;
-    gainNode = meterContext.createGain();
-    gainNode.gain.value = gain;
-    source.connect(gainNode);
-    gainNode.connect(analyser);
     return stream;
   }
   async function peerFor(id) {
@@ -69,19 +60,13 @@
     disable() {
       enabled = false; transmitting = false;
       if (stream) {stream.getTracks().forEach(t=>t.stop()); stream = null;}
-      testing=false;
-      if(meterContext) {meterContext.close(); meterContext=null; analyser=null; source=null; gainNode=null;}
       for(const id of [...peers.keys()]) closePeer(id);
       emit('disabled', {});
     },
     talk(active) {
       transmitting = !!active && enabled;
-      if(stream) stream.getAudioTracks().forEach(t=>t.enabled=transmitting || testing);
+      if(stream) stream.getAudioTracks().forEach(t=>t.enabled=transmitting);
     },
-    setGain(value) {gain=Math.max(0,Math.min(2,Number(value)||0)); if(gainNode) gainNode.gain.value=gain;},
-    startTest() {if(!enabled || !stream) return; testing=true; if(meterContext?.state==='suspended') meterContext.resume(); stream.getAudioTracks().forEach(t=>t.enabled=true);},
-    stopTest() {testing=false; if(stream) stream.getAudioTracks().forEach(t=>t.enabled=transmitting);},
-    meter() {if(!testing || !analyser) return 0; const a=new Float32Array(analyser.fftSize); analyser.getFloatTimeDomainData(a); let s=0; for(const x of a)s+=x*x; return Math.min(1,Math.sqrt(s/a.length)*8);},
     async offer(id) {
       if(!enabled || !id || id===selfId) return;
       try {
