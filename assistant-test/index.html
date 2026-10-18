@@ -129,10 +129,10 @@ html,body{background:#000}
 	<script>
 (function(){
   const key='legacy_startup_trace_v1', max=80;
-  function read(){try{return JSON.parse(sessionStorage.getItem(key)||'[]')}catch(e){return []}}
+  function read(){try{return JSON.parse(localStorage.getItem(key)||sessionStorage.getItem(key)||'[]')}catch(e){return []}}
   function mark(message){
     const rows=read(); rows.push({at:new Date().toISOString(),message:String(message)});
-    try{sessionStorage.setItem(key,JSON.stringify(rows.slice(-max)))}catch(e){}
+    try{const data=JSON.stringify(rows.slice(-max));localStorage.setItem(key,data);sessionStorage.setItem(key,data)}catch(e){}
     render();
   }
   function render(){
@@ -144,6 +144,10 @@ html,body{background:#000}
   window.LegacyStartupTrace={mark:mark,read:read};
   window.addEventListener('error',e=>mark('JS ERROR '+(e.message||'unknown')));
   window.addEventListener('unhandledrejection',e=>mark('PROMISE ERROR '+String(e.reason)));
+  const originalError=console.error.bind(console);
+  console.error=function(){const msg=Array.from(arguments).map(String).join(' ');mark('CONSOLE ERROR '+msg.slice(0,300));originalError.apply(console,arguments)};
+  const originalLog=console.log.bind(console);
+  console.log=function(){const msg=Array.from(arguments).map(String).join(' ');if(msg.includes('LEGACY STARTUP:'))mark('GODOT '+msg.slice(0,300));originalLog.apply(console,arguments)};
   window.addEventListener('DOMContentLoaded',()=>{
     const panel=document.createElement('pre');
     panel.id='legacy-diagnostics';
