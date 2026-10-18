@@ -144,6 +144,16 @@ html,body{background:#000}
   window.LegacyStartupTrace={mark:mark,read:read};
   window.addEventListener('error',e=>mark('JS ERROR '+(e.message||'unknown')));
   window.addEventListener('unhandledrejection',e=>mark('PROMISE ERROR '+String(e.reason)));
+  window.addEventListener('resize',()=>mark('VIEWPORT resize '+innerWidth+'x'+innerHeight));
+  window.addEventListener('orientationchange',()=>mark('ORIENTATION change '+screen.orientation?.type));
+  document.addEventListener('visibilitychange',()=>mark('PAGE visibility '+document.visibilityState));
+  window.addEventListener('pageshow',e=>mark('PAGE SHOW persisted='+e.persisted));
+  document.addEventListener('play',e=>mark('MEDIA play '+(e.target?.tagName||'unknown')),true);
+  document.addEventListener('playing',e=>mark('MEDIA playing '+(e.target?.tagName||'unknown')),true);
+  document.addEventListener('ended',e=>mark('MEDIA ended '+(e.target?.tagName||'unknown')),true);
+  document.addEventListener('error',e=>{if(e.target?.tagName==='VIDEO')mark('MEDIA error video')},true);
+  document.addEventListener('click',e=>{const t=e.target;if(t?.closest?.('#legacy-diagnostics'))return;mark('DOM click '+(t?.tagName||'unknown'))},true);
+  window.addEventListener('beforeunload',()=>mark('PAGE beforeunload'));
   const originalError=console.error.bind(console);
   console.error=function(){const msg=Array.from(arguments).map(String).join(' ');mark('CONSOLE ERROR '+msg.slice(0,300));originalError.apply(console,arguments)};
   const originalLog=console.log.bind(console);
@@ -157,6 +167,15 @@ html,body{background:#000}
     panel.style.pointerEvents='auto';
     panel.style.visibility='visible';
     panel.style.display='block';
+    // Warning bumper: visible read-only; unlock once the loader leaves.
+    function panelAccess(){
+      const bumper=document.getElementById('legacy-web-loading');
+      const blocked=!!bumper && bumper.isConnected;
+      panel.style.pointerEvents=blocked?'none':'auto';
+      panel.style.opacity=blocked?'.55':'.85';
+    }
+    new MutationObserver(panelAccess).observe(document.body,{childList:true,subtree:false});
+    panelAccess();
     panel.style.cursor='pointer';
     panel.onclick=async()=>{
       const data=read().map(x=>x.at+' '+x.message).join('\n');
@@ -166,7 +185,7 @@ html,body{background:#000}
       try{if(navigator.clipboard){await navigator.clipboard.writeText(data);panel.title='Diagnostics copied';return;}}catch(e){}
       const box=document.createElement('textarea');box.value=data;box.style.cssText='position:fixed;top:15%;left:5%;width:90%;height:55%;z-index:2147483647';document.body.appendChild(box);box.focus();box.select();
     };
-    document.body.appendChild(panel);render();
+    document.body.appendChild(panel);render();panelAccess();
   });
   mark('PAGE INITIALIZED '+location.pathname);
   window.addEventListener('pagehide',()=>mark('PAGE HIDE'));
@@ -188,7 +207,7 @@ document.addEventListener('DOMContentLoaded',function(){
   document.body.appendChild(splash);
   var fill=document.getElementById('legacy-load-fill'),label=document.getElementById('legacy-load-label');
   var source=document.getElementById('status-progress'),canvas=document.querySelector('canvas');
-  var shown=0;
+  var shown=0, lastReported=-1;
   function sync(){
     if(!source||!source.isConnected)source=document.getElementById('status-progress');
     // Browser bootstrap occupies the first 10%; Godot's actual loader
@@ -206,6 +225,8 @@ document.addEventListener('DOMContentLoaded',function(){
     shown=Math.max(shown,pct);
     fill.style.width=shown+'%';
     label.textContent='LOADING '+Math.round(shown)+'%';
+    var step=Math.floor(shown/10)*10;
+    if(step>lastReported){lastReported=step;if(window.LegacyStartupTrace)window.LegacyStartupTrace.mark('WEB LOADER '+step+'%');}
   }
   // Observe Godot's own progress element, not our overlay: avoid mutation loops.
   var watch=new MutationObserver(function(){
@@ -214,7 +235,7 @@ document.addEventListener('DOMContentLoaded',function(){
     var started=canvas&&canvas.width>0&&canvas.height>0&&
       getComputedStyle(canvas).display!=='none'&&
       (!status||getComputedStyle(status).display==='none');
-    if(started){splash.remove();watch.disconnect();}
+    if(started){if(window.LegacyStartupTrace)window.LegacyStartupTrace.mark('WEB LOADER removed; canvas active');splash.remove();watch.disconnect();}
   });
   var status=document.getElementById('status');
   if(status)watch.observe(status,{attributes:true,childList:true,subtree:true,attributeFilter:['style','class']});
@@ -227,10 +248,11 @@ document.addEventListener('DOMContentLoaded',function(){
     var status=document.getElementById('status');
     if(canvas&&canvas.width>0&&canvas.height>0&&getComputedStyle(canvas).display!=='none'&&
       (!status||getComputedStyle(status).display==='none')){
+      if(window.LegacyStartupTrace)window.LegacyStartupTrace.mark('WEB LOADER removed by poll');
       splash.remove();watch.disconnect();clearInterval(poll);
     }
   },250);
-  window.addEventListener('pagehide',function(){watch.disconnect();splash.remove()},{once:true});
+  window.addEventListener('pagehide',function(){if(window.LegacyStartupTrace)window.LegacyStartupTrace.mark('WEB LOADER pagehide');watch.disconnect();splash.remove()},{once:true});
 });
 </script></head>
 	<body>
