@@ -126,76 +126,7 @@ html,body{background:#000}
   });
 })();
 </script>
-	<script>
-(function(){
-  const key='legacy_startup_trace_v1', max=80;
-  function read(){try{return JSON.parse(localStorage.getItem(key)||sessionStorage.getItem(key)||'[]')}catch(e){return []}}
-  function mark(message){
-    const rows=read(); rows.push({at:new Date().toISOString(),message:String(message)});
-    try{const data=JSON.stringify(rows.slice(-max));localStorage.setItem(key,data);sessionStorage.setItem(key,data)}catch(e){}
-    render();
-  }
-  function render(){
-    const panel=document.getElementById('legacy-diagnostics');
-    if(!panel)return;
-    const rows=read(), last=rows.slice(-8);
-    panel.textContent='LEGACY DIAGNOSTICS (tap to copy)\n'+last.map(x=>x.at.slice(11,19)+' '+x.message).join('\n');
-  }
-  window.LegacyStartupTrace={mark:mark,read:read};
-  window.addEventListener('error',e=>mark('JS ERROR '+(e.message||'unknown')));
-  window.addEventListener('unhandledrejection',e=>mark('PROMISE ERROR '+String(e.reason)));
-  window.addEventListener('resize',()=>mark('VIEWPORT resize '+innerWidth+'x'+innerHeight));
-  window.addEventListener('orientationchange',()=>mark('ORIENTATION change '+screen.orientation?.type));
-  document.addEventListener('visibilitychange',()=>mark('PAGE visibility '+document.visibilityState));
-  window.addEventListener('pageshow',e=>mark('PAGE SHOW persisted='+e.persisted));
-  document.addEventListener('play',e=>mark('MEDIA play '+(e.target?.tagName||'unknown')),true);
-  document.addEventListener('playing',e=>mark('MEDIA playing '+(e.target?.tagName||'unknown')),true);
-  document.addEventListener('ended',e=>mark('MEDIA ended '+(e.target?.tagName||'unknown')),true);
-  document.addEventListener('error',e=>{if(e.target?.tagName==='VIDEO')mark('MEDIA error video')},true);
-  document.addEventListener('click',e=>{const t=e.target;if(t?.closest?.('#legacy-diagnostics'))return;mark('DOM click '+(t?.tagName||'unknown'))},true);
-  window.addEventListener('beforeunload',()=>mark('PAGE beforeunload'));
-  const originalError=console.error.bind(console);
-  console.error=function(){const msg=Array.from(arguments).map(String).join(' ');mark('CONSOLE ERROR '+msg.slice(0,300));originalError.apply(console,arguments)};
-  const originalLog=console.log.bind(console);
-  console.log=function(){const msg=Array.from(arguments).map(String).join(' ');if(msg.includes('LEGACY STARTUP:'))mark('GODOT '+msg.slice(0,300));originalLog.apply(console,arguments)};
-  window.addEventListener('DOMContentLoaded',()=>{
-    const panel=document.createElement('pre');
-    panel.id='legacy-diagnostics';
-    panel.style.cssText='position:fixed;z-index:2147483647;top:4px;right:4px;max-width:42vw;max-height:13vh;overflow:auto;background:#000c;color:#9fe;padding:5px;font:10px monospace;white-space:pre-wrap;pointer-events:none;opacity:.72';
-    panel.title='Tap to share diagnostics';
-    // Keep diagnostics reachable even when Godot never reaches the title.
-    panel.style.pointerEvents='auto';
-    panel.style.visibility='visible';
-    panel.style.display='block';
-    // Warning bumper: visible read-only; unlock once the loader leaves.
-    function panelAccess(){
-      const bumper=document.getElementById('legacy-web-loading');
-      // Only unlock after the actual Godot canvas is active.
-      // The warning bumper may be a Godot scene, not the HTML splash.
-      const canvas=document.querySelector('canvas');
-      const status=document.getElementById('status');
-      const active=!!canvas && canvas.width>0 && canvas.height>0 && getComputedStyle(canvas).display!=='none' && (!status || getComputedStyle(status).display==='none');
-      const blocked=!!bumper && bumper.isConnected || !active;
-      panel.style.pointerEvents=blocked?'none':'auto';
-      panel.style.opacity=blocked?'.55':'.85';
-    }
-    new MutationObserver(panelAccess).observe(document.body,{childList:true,subtree:false});
-    panelAccess();
-    panel.style.cursor='pointer';
-    panel.onclick=async()=>{
-      const data=read().map(x=>x.at+' '+x.message).join('\n');
-      try{
-        if(navigator.share){await navigator.share({title:'Legacy diagnostics',text:data});return;}
-      }catch(e){if(e.name==='AbortError')return;}
-      try{if(navigator.clipboard){await navigator.clipboard.writeText(data);panel.title='Diagnostics copied';return;}}catch(e){}
-      const box=document.createElement('textarea');box.value=data;box.style.cssText='position:fixed;top:15%;left:5%;width:90%;height:55%;z-index:2147483647';document.body.appendChild(box);box.focus();box.select();
-    };
-    document.body.appendChild(panel);render();panelAccess();
-  });
-  mark('PAGE INITIALIZED '+location.pathname);
-  window.addEventListener('pagehide',()=>mark('PAGE HIDE'));
-})();
-</script><script src="legacy_voice.js"></script><script src="legacy_text_input.js"></script><script src="legacy_social_auth.js"></script><style>
+	<script src="legacy_text_input.js"></script><script src="legacy_social_auth.js"></script><style>
 #legacy-web-loading{position:fixed;inset:0;z-index:10000;pointer-events:none;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden}
 #legacy-web-loading img{width:100%;height:100%;object-fit:cover}
 #legacy-web-loading .ok-mask{position:absolute;inset:66% 0 0;background:linear-gradient(to bottom,transparent 0%,rgba(0,0,0,.75) 55%,#000 100%)}
@@ -212,7 +143,7 @@ document.addEventListener('DOMContentLoaded',function(){
   document.body.appendChild(splash);
   var fill=document.getElementById('legacy-load-fill'),label=document.getElementById('legacy-load-label');
   var source=document.getElementById('status-progress'),canvas=document.querySelector('canvas');
-  var shown=0, lastReported=-1;
+  var shown=0;
   function sync(){
     if(!source||!source.isConnected)source=document.getElementById('status-progress');
     // Browser bootstrap occupies the first 10%; Godot's actual loader
@@ -230,8 +161,6 @@ document.addEventListener('DOMContentLoaded',function(){
     shown=Math.max(shown,pct);
     fill.style.width=shown+'%';
     label.textContent='LOADING '+Math.round(shown)+'%';
-    var step=Math.floor(shown/10)*10;
-    if(step>lastReported){lastReported=step;if(window.LegacyStartupTrace)window.LegacyStartupTrace.mark('WEB LOADER '+step+'%');}
   }
   // Observe Godot's own progress element, not our overlay: avoid mutation loops.
   var watch=new MutationObserver(function(){
@@ -240,7 +169,7 @@ document.addEventListener('DOMContentLoaded',function(){
     var started=canvas&&canvas.width>0&&canvas.height>0&&
       getComputedStyle(canvas).display!=='none'&&
       (!status||getComputedStyle(status).display==='none');
-    if(started){if(window.LegacyStartupTrace)window.LegacyStartupTrace.mark('WEB LOADER removed; canvas active');splash.remove();watch.disconnect();}
+    if(started){splash.remove();watch.disconnect();}
   });
   var status=document.getElementById('status');
   if(status)watch.observe(status,{attributes:true,childList:true,subtree:true,attributeFilter:['style','class']});
@@ -253,11 +182,10 @@ document.addEventListener('DOMContentLoaded',function(){
     var status=document.getElementById('status');
     if(canvas&&canvas.width>0&&canvas.height>0&&getComputedStyle(canvas).display!=='none'&&
       (!status||getComputedStyle(status).display==='none')){
-      if(window.LegacyStartupTrace)window.LegacyStartupTrace.mark('WEB LOADER removed by poll');
       splash.remove();watch.disconnect();clearInterval(poll);
     }
   },250);
-  window.addEventListener('pagehide',function(){if(window.LegacyStartupTrace)window.LegacyStartupTrace.mark('WEB LOADER pagehide');watch.disconnect();splash.remove()},{once:true});
+  window.addEventListener('pagehide',function(){watch.disconnect();splash.remove()},{once:true});
 });
 </script></head>
 	<body>
@@ -277,7 +205,7 @@ document.addEventListener('DOMContentLoaded',function(){
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":28184480,"index.wasm":38034280},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":28179596,"index.wasm":38034280},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
@@ -354,7 +282,13 @@ const engine = new Engine(GODOT_CONFIG);
 				}),
 			]).then(() => {
 				// Reload if there was no error.
-				window.location.reload();
+				if (!sessionStorage.getItem('legacy_coi_reload_attempted')) {
+              sessionStorage.setItem('legacy_coi_reload_attempted', '1');
+              window.location.reload();
+            } else {
+              console.error('Legacy: cross-origin isolation unavailable after one retry');
+              displayFailureNotice('Browser initialization failed. Please reopen Legacy in Safari or Chrome.');
+            }
 			}).catch((err) => {
 				console.error('Error while registering service worker:', err);
 			});
