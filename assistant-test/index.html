@@ -161,7 +161,7 @@ html,body{background:#000}
   window.addEventListener('DOMContentLoaded',()=>{
     const panel=document.createElement('pre');
     panel.id='legacy-diagnostics';
-    panel.style.cssText='position:fixed;z-index:2147483647;bottom:4px;left:4px;max-width:94vw;max-height:20vh;overflow:auto;background:#000c;color:#9fe;padding:5px;font:10px monospace;white-space:pre-wrap;pointer-events:none;opacity:.72';
+    panel.style.cssText='position:fixed;z-index:2147483647;top:4px;right:4px;max-width:42vw;max-height:13vh;overflow:auto;background:#000c;color:#9fe;padding:5px;font:10px monospace;white-space:pre-wrap;pointer-events:none;opacity:.72';
     panel.title='Tap to share diagnostics';
     // Keep diagnostics reachable even when Godot never reaches the title.
     panel.style.pointerEvents='auto';
@@ -170,7 +170,12 @@ html,body{background:#000}
     // Warning bumper: visible read-only; unlock once the loader leaves.
     function panelAccess(){
       const bumper=document.getElementById('legacy-web-loading');
-      const blocked=!!bumper && bumper.isConnected;
+      // Only unlock after the actual Godot canvas is active.
+      // The warning bumper may be a Godot scene, not the HTML splash.
+      const canvas=document.querySelector('canvas');
+      const status=document.getElementById('status');
+      const active=!!canvas && canvas.width>0 && canvas.height>0 && getComputedStyle(canvas).display!=='none' && (!status || getComputedStyle(status).display==='none');
+      const blocked=!!bumper && bumper.isConnected || !active;
       panel.style.pointerEvents=blocked?'none':'auto';
       panel.style.opacity=blocked?'.55':'.85';
     }
