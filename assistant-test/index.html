@@ -153,8 +153,10 @@ html,body{background:#000}
     panel.id='legacy-diagnostics';
     panel.style.cssText='position:fixed;z-index:2147483647;bottom:4px;left:4px;max-width:94vw;max-height:20vh;overflow:auto;background:#000c;color:#9fe;padding:5px;font:10px monospace;white-space:pre-wrap;pointer-events:none;opacity:.72';
     panel.title='Tap to share diagnostics';
-    panel.style.pointerEvents='none';
-    panel.style.visibility='hidden';
+    // Keep diagnostics reachable even when Godot never reaches the title.
+    panel.style.pointerEvents='auto';
+    panel.style.visibility='visible';
+    panel.style.display='block';
     panel.style.cursor='pointer';
     panel.onclick=async()=>{
       const data=read().map(x=>x.at+' '+x.message).join('\n');
