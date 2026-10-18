@@ -4,7 +4,7 @@
 // Incrementing CACHE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
 /** @type {string} */
-const CACHE_VERSION = 'cb723e39b8f16d51a8a5969247aa5fd330371be9-1792354253|4368713';
+const CACHE_VERSION = '384e49730782d97d2c641d179503f8a263a9952f-1792354485|3386255';
 /** @type {string} */
 const CACHE_PREFIX = 'Legacy-sw-cache-';
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;

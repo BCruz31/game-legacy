@@ -1,6 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
+	<head><script>
+(function(){
+  if(!new URLSearchParams(location.search).has('legacy_refresh'))return;
+  if(sessionStorage.getItem('legacy_asset_refresh_done'))return;
+  sessionStorage.setItem('legacy_asset_refresh_done','1');
+  document.documentElement.style.visibility='hidden';
+  Promise.all([
+    navigator.serviceWorker ? navigator.serviceWorker.getRegistrations().then(function(regs){return Promise.all(regs.filter(function(r){return r.scope.indexOf('/oct12-baseline/')!==-1;}).map(function(r){return r.unregister();}));}) : Promise.resolve(),
+    caches.keys().then(function(keys){return Promise.all(keys.filter(function(k){return k.indexOf('Legacy-sw-cache-')===0;}).map(function(k){return caches.delete(k);}));})
+  ]).then(function(){location.replace(location.pathname+'?legacy_refreshed=1');})
+    .catch(function(){location.replace(location.pathname+'?legacy_refreshed=1');});
+})();
+</script>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
 		<title>Legacy</title>
