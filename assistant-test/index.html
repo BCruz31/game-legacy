@@ -152,8 +152,17 @@ html,body{background:#000}
     const panel=document.createElement('pre');
     panel.id='legacy-diagnostics';
     panel.style.cssText='position:fixed;z-index:2147483647;bottom:4px;left:4px;max-width:94vw;max-height:20vh;overflow:auto;background:#000c;color:#9fe;padding:5px;font:10px monospace;white-space:pre-wrap;pointer-events:none;opacity:.72';
-    panel.title='Tap to copy diagnostics';
-    panel.onclick=()=>{const data=read().map(x=>x.at+' '+x.message).join('\n');if(navigator.clipboard)navigator.clipboard.writeText(data).catch(()=>{});};
+    panel.title='Tap to share diagnostics';
+    panel.style.pointerEvents='auto';
+    panel.style.cursor='pointer';
+    panel.onclick=async()=>{
+      const data=read().map(x=>x.at+' '+x.message).join('\n');
+      try{
+        if(navigator.share){await navigator.share({title:'Legacy diagnostics',text:data});return;}
+      }catch(e){if(e.name==='AbortError')return;}
+      try{if(navigator.clipboard){await navigator.clipboard.writeText(data);panel.title='Diagnostics copied';return;}}catch(e){}
+      const box=document.createElement('textarea');box.value=data;box.style.cssText='position:fixed;top:15%;left:5%;width:90%;height:55%;z-index:2147483647';document.body.appendChild(box);box.focus();box.select();
+    };
     document.body.appendChild(panel);render();
   });
   mark('PAGE INITIALIZED '+location.pathname);
