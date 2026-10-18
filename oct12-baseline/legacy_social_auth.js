@@ -2,7 +2,9 @@
 (() => {
   if (window.LegacySocialAuth) return;
   const project = 'https://euqmgzrcccaaupzsdqhj.supabase.co';
-  const destination = 'https://bcruz31.github.io/game-legacy/assistant-test/';
+  // Return to the exact deployed build that initiated authentication.
+  // Do not redirect isolated beta users to the unrelated assistant-test build.
+  const destination = new URL(location.pathname, location.origin).href;
   const pendingKey = 'legacy_google_oauth_pending';
   const startedKey = 'legacy_google_oauth_started';
   const statusKey = 'legacy_google_oauth_status';
