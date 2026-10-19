@@ -4,7 +4,7 @@
 // Incrementing CACHE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
 /** @type {string} */
-const CACHE_VERSION = '1792440385|2847275';
+const CACHE_VERSION = '1792440676|5002917';
 /** @type {string} */
 const CACHE_PREFIX = 'Legacy-assistant-test-cache-';
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
