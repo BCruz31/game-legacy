@@ -129,31 +129,64 @@ html,body{background:#000}
 	
 <script>
 (() => {
-  const running = "26c213a5c2031caaa7626473a9438699fc07e522";
-  const banner = document.createElement('div');
-  banner.id = 'legacy-build-status';
-  banner.style.cssText = 'position:fixed;bottom:0;left:0;z-index:99999;background:#081326;color:#b7eaff;padding:5px 9px;font:12px sans-serif;opacity:.85;pointer-events:auto';
-  banner.textContent = 'LEGACY BUILD ' + running.slice(0,8) + ' · checking';
+  const running = "69b6c3814e24e61455fab4c5f33cb185d83969d1";
+  let latest = '';
+  let titleActive = false;
+  let dialog = null;
+  let requestSerial = 0;
+  const removePrompt = () => {
+    if (dialog) dialog.remove();
+    dialog = null;
+  };
+  const showPrompt = () => {
+    if (!titleActive || !latest || latest === running || dialog || !document.body) return;
+    dialog = document.createElement('div');
+    dialog.id = 'legacy-update-prompt';
+    dialog.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.78);padding:20px;box-sizing:border-box';
+    const panel = document.createElement('div');
+    panel.style.cssText = 'width:min(440px,95vw);border:2px solid #53caff;border-radius:14px;background:#091426;color:#e8f6ff;padding:22px;text-align:center;font:16px sans-serif;box-shadow:0 0 25px #145a9a';
+    const heading = document.createElement('h2');
+    heading.textContent = 'LEGACY UPDATE AVAILABLE';
+    heading.style.cssText = 'margin:0 0 14px;font-size:21px';
+    const message = document.createElement('p');
+    message.textContent = 'A newer game build is ready. Update before entering Web World 01 so both players use the same version.';
+    const button = document.createElement('button');
+    button.textContent = 'UPDATE LEGACY';
+    button.style.cssText = 'padding:13px 26px;margin-top:12px;background:#1666b8;color:white;border:1px solid #81dbff;border-radius:8px;font:bold 17px sans-serif;cursor:pointer';
+    button.onclick = () => {
+      button.disabled = true;
+      button.textContent = 'LOADING UPDATE...';
+      // Change the document URL without deleting account or game storage.
+      location.replace(location.pathname + '?build=' + latest.slice(0,12) + '&reload=' + Date.now());
+    };
+    panel.append(heading,message,button);
+    dialog.appendChild(panel);
+    document.body.appendChild(dialog);
+  };
   const check = async () => {
+    const serial = ++requestSerial;
     try {
       const response = await fetch('legacy-version.json?check=' + Date.now(), {cache:'no-store'});
-      if (!response.ok) throw new Error('manifest unavailable');
+      if (!response.ok) return;
       const data = await response.json();
-      if (!data.build || !/^[a-f0-9]{40}$/.test(data.build)) throw new Error('invalid manifest');
-      if (data.build === running) {
-        banner.textContent = 'LEGACY BUILD ' + running.slice(0,8) + ' · CURRENT';
-      } else {
-        banner.textContent = 'LEGACY BUILD ' + running.slice(0,8) + ' · UPDATE ' + data.build.slice(0,8) + ' AVAILABLE · TAP TO RELOAD';
-        banner.style.background = '#694000';
-        banner.onclick = () => location.replace(location.pathname + '?build=' + data.build.slice(0,12) + '&reload=' + Date.now());
-      }
+      if (serial !== requestSerial || !data.build || !/^[a-f0-9]{40}$/.test(data.build)) return;
+      latest = data.build;
+      if (latest === running) removePrompt();
+      else showPrompt();
     } catch (_) {
-      banner.textContent = 'LEGACY BUILD ' + running.slice(0,8) + ' · VERSION CHECK UNAVAILABLE';
+      // A failed version check must not block game startup.
     }
   };
-  document.addEventListener('DOMContentLoaded', () => {document.body.appendChild(banner); check();});
+  window.LegacyVersionGate = {
+    setTitleActive(active) {
+      titleActive = !!active;
+      if (titleActive) { showPrompt(); check(); }
+      else removePrompt();
+    }
+  };
   document.addEventListener('visibilitychange', () => {if (!document.hidden) check();});
   setInterval(() => {if (!document.hidden) check();}, 60000);
+  check();
 })();
 </script>
 <script src="legacy_text_input.js"></script><script src="legacy_social_auth.js"></script><style>
@@ -235,7 +268,7 @@ document.addEventListener('DOMContentLoaded',function(){
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":28192680,"index.wasm":38034280},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":28192872,"index.wasm":38034280},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
