@@ -129,7 +129,7 @@ html,body{background:#000}
 	
 <script>
 (() => {
-  const running = "9d16fb29ccedc54708cda2bf121d045911d3b7fb";
+  const running = "74c7bd9fa4709c71b8babe1fc22e750244786ce2";
   let latest = '';
   let titleActive = false;
   let dialog = null;
@@ -248,7 +248,37 @@ document.addEventListener('DOMContentLoaded',function(){
       splash.remove();watch.disconnect();clearInterval(poll);
     }
   },250);
-  window.addEventListener('pagehide',function(){watch.disconnect();splash.remove()},{once:true});
+  // A frozen bootstrap must not strand the player behind a silent bar.
+  // Display a recoverable error instead of falsely marking load complete.
+  var startedAt=Date.now(),lastAdvance=Date.now(),lastShown=shown;
+  var watchdog=setInterval(function(){
+    if(!splash.isConnected){clearInterval(watchdog);return;}
+    if(shown>lastShown+0.1){lastShown=shown;lastAdvance=Date.now();}
+    if(Date.now()-startedAt<45000 || Date.now()-lastAdvance<30000)return;
+    clearInterval(watchdog);
+    label.textContent='LOADING STALLED — TAP TO RETRY';
+    label.style.cssText+=';pointer-events:auto;cursor:pointer;background:#071425;padding:12px 0';
+    splash.style.pointerEvents='auto';
+    label.onclick=async function(){
+      label.textContent='RESTARTING LEGACY...';
+      try{
+        if('serviceWorker' in navigator){
+          var regs=await navigator.serviceWorker.getRegistrations();
+          for(var reg of regs){
+            if(reg.scope.indexOf('/assistant-test/')!==-1)await reg.unregister();
+          }
+        }
+        if('caches' in window){
+          var keys=await caches.keys();
+          for(var key of keys){
+            if(key.startsWith('Legacy-assistant-test-cache-'))await caches.delete(key);
+          }
+        }
+      }catch(err){console.warn('Legacy cache recovery:',err);}
+      location.replace(location.pathname+'?recover='+Date.now());
+    };
+  },1000);
+  window.addEventListener('pagehide',function(){clearInterval(watchdog);watch.disconnect();splash.remove()},{once:true});
 });
 </script></head>
 	<body>
