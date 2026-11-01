@@ -129,19 +129,81 @@ html,body{background:#000}
 	
 <script>
 (() => {
-  const running = "0c43e67477712e913ca8760a21e0bc3f1e1eb099";
+  // The page's own build; the game pack reports its own (BuildStamp) through checkNow,
+  // and that is what's compared: a pack served stale from a cache shows as out of date.
+  const pageBuild = "ea04ca2ffcd1fcaac22b4ad4c46c4d296119d5d2";
+  let running = pageBuild;
   let latest = '';
-  // Shown from page load through the loading screen (owner: update before the bumpers);
-  // the in-game loading screen turns it off as it leaves.
-  let titleActive = true;
+  let latestAt = '';
+  let state = 'unknown';
   let dialog = null;
   let requestSerial = 0;
+  let checking = null;
+  const SCOPE = '/world-lab/';
+  const CACHE_PREFIX = 'Legacy-world-lab-cache-';
+  // A page build seen on this device for the first time while an older service worker
+  // still controls it: that worker would hand the engine its old cached pack, so clear
+  // it once and reload (the first visit after each deploy only).
+  try {
+    const seen = localStorage.getItem('legacy_page_build');
+    if (seen !== pageBuild) {
+      localStorage.setItem('legacy_page_build', pageBuild);
+      if (seen && navigator.serviceWorker && navigator.serviceWorker.controller) {
+        (async () => {
+          try {
+            for (const reg of await navigator.serviceWorker.getRegistrations()) {
+              if (reg.scope.indexOf(SCOPE) !== -1) await reg.unregister();
+            }
+            for (const key of await caches.keys()) {
+              if (key.startsWith(CACHE_PREFIX)) await caches.delete(key);
+            }
+          } catch (_) {}
+          location.reload();
+        })();
+      }
+    }
+  } catch (_) {}
   const removePrompt = () => {
     if (dialog) dialog.remove();
     dialog = null;
   };
+  const when = (iso) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d)) return '';
+    return d.toLocaleString(undefined, {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'});
+  };
+  // Everything the update needs, past every cache: the service worker and its caches go,
+  // the game's files are fetched fresh into the browser cache, then the page reloads.
+  const update = async (button) => {
+    const say = (t) => { if (button) button.textContent = t; };
+    say('CLEARING OLD FILES...');
+    try {
+      if (navigator.serviceWorker) {
+        for (const reg of await navigator.serviceWorker.getRegistrations()) {
+          if (reg.scope.indexOf(SCOPE) !== -1) await reg.unregister();
+        }
+      }
+      if (window.caches) {
+        for (const key of await caches.keys()) {
+          if (key.startsWith(CACHE_PREFIX)) await caches.delete(key);
+        }
+      }
+      sessionStorage.removeItem('legacy_coi_reload_attempted');
+      localStorage.setItem('legacy_page_build', latest);
+    } catch (_) {}
+    const files = ['index.html', 'index.js', 'index.wasm', 'index.pck', 'index.audio.worklet.js', 'index.audio.position.worklet.js'];
+    let done = 0;
+    say('DOWNLOADING UPDATE 0%');
+    await Promise.all(files.map((f) => fetch(f, {cache:'reload'}).then((r) => r.ok ? r.arrayBuffer() : null).catch(() => null).then(() => {
+      done += 1;
+      say('DOWNLOADING UPDATE ' + Math.round(100 * done / files.length) + '%');
+    })));
+    say('RESTARTING...');
+    location.replace(location.pathname + '?v=' + latest.slice(0, 12));
+  };
   const showPrompt = () => {
-    if (!titleActive || !latest || latest === running || dialog || !document.body) return;
+    if (!latest || latest === running || dialog || !document.body) return;
     dialog = document.createElement('div');
     dialog.id = 'legacy-update-prompt';
     dialog.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.78);padding:20px;box-sizing:border-box';
@@ -151,44 +213,63 @@ html,body{background:#000}
     heading.textContent = 'LEGACY UPDATE AVAILABLE';
     heading.style.cssText = 'margin:0 0 14px;font-size:21px';
     const message = document.createElement('p');
-    message.textContent = 'A newer game build is ready. Update before entering Web World 01 so both players use the same version.';
+    message.textContent = 'A newer build is out. Update to play with everyone on the same version.';
+    const versions = document.createElement('p');
+    versions.style.cssText = 'font:13px monospace;color:#9cc9e8;margin:10px 0 0';
+    versions.textContent = 'NEW ' + latest.slice(0, 7) + (latestAt ? ' (' + when(latestAt) + ')' : '') + '  ·  YOURS ' + String(running).slice(0, 7);
     const button = document.createElement('button');
     button.textContent = 'UPDATE LEGACY';
-    button.style.cssText = 'padding:13px 26px;margin-top:12px;background:#1666b8;color:white;border:1px solid #81dbff;border-radius:8px;font:bold 17px sans-serif;cursor:pointer';
+    button.style.cssText = 'padding:13px 26px;margin-top:14px;background:#1666b8;color:white;border:1px solid #81dbff;border-radius:8px;font:bold 17px sans-serif;cursor:pointer';
     button.onclick = () => {
+      if (button.disabled) return;
       button.disabled = true;
-      button.textContent = 'LOADING UPDATE...';
-      // Change the document URL without deleting account or game storage.
-      location.replace(location.pathname + '?build=' + latest.slice(0,12) + '&reload=' + Date.now());
+      update(button);
     };
-    panel.append(heading,message,button);
+    panel.append(heading, message, versions, button);
     dialog.appendChild(panel);
     document.body.appendChild(dialog);
   };
-  const check = async () => {
+  const check = () => {
     const serial = ++requestSerial;
-    try {
-      const response = await fetch('legacy-version.json?check=' + Date.now(), {cache:'no-store'});
-      if (!response.ok) return;
-      const data = await response.json();
-      if (serial !== requestSerial || !data.build || !/^[a-f0-9]{40}$/.test(data.build)) return;
-      latest = data.build;
-      if (latest === running) removePrompt();
-      else showPrompt();
-    } catch (_) {
-      // A failed version check must not block game startup.
-    }
+    checking = (async () => {
+      try {
+        const response = await fetch('legacy-version.json?check=' + Date.now(), {cache:'no-store'});
+        if (!response.ok) throw new Error('manifest ' + response.status);
+        const data = await response.json();
+        if (serial !== requestSerial) return;
+        if (!data.build || !/^[a-f0-9]{40}$/.test(data.build)) throw new Error('bad manifest');
+        latest = data.build;
+        latestAt = data.built_at || '';
+        state = latest === running ? 'current' : 'update';
+        if (state === 'current') removePrompt();
+      } catch (_) {
+        // No answer must never block the game.
+        if (serial === requestSerial) state = 'unknown';
+      }
+    })();
+    return checking;
   };
   window.LegacyVersionGate = {
-    setTitleActive(active) {
-      titleActive = !!active;
-      if (titleActive) { showPrompt(); check(); }
-      else removePrompt();
-    }
+    // The game asks with its own pack's build as the loading screen starts, and the
+    // warning screen holds OK till status() is no longer 'checking' (owner, Nov 1).
+    checkNow(packBuild) {
+      if (packBuild && /^[a-f0-9]{40}$/.test(packBuild)) running = packBuild;
+      state = 'checking';
+      check();
+      return true;
+    },
+    status() { return state; },
+    running() { return running; },
+    latest() { return latest; },
+    updateReady() { return !!latest && latest !== running; },
+    show() { showPrompt(); },
+    update() { return update(null); },
+    // Older packs called this; the prompt now only comes up when the game asks.
+    setTitleActive(_) {}
   };
-  document.addEventListener('visibilitychange', () => {if (!document.hidden) check();});
-  setInterval(() => {if (!document.hidden) check();}, 60000);
-  check();
+  // While playing, the check keeps running quietly; the next warning screen acts on it.
+  document.addEventListener('visibilitychange', () => {if (!document.hidden && state !== 'checking') check();});
+  setInterval(() => {if (!document.hidden && state !== 'checking') check();}, 120000);
 })();
 </script>
 <script src="legacy_text_input.js"></script><script src="legacy_social_auth.js"></script><style>
@@ -204,13 +285,17 @@ html,body{background:#000}
 </style><script>
 document.addEventListener('DOMContentLoaded',function(){
   var splash=document.createElement('div');splash.id='legacy-web-loading';
-  splash.innerHTML='<picture><source media="(orientation:landscape)" srcset="legacy-loading-landscape.jpg"><img src="legacy-loading-portrait.jpg" alt="Legacy Loading"></picture><div class="ok-mask"></div><div id="legacy-load-track"><div id="legacy-load-fill"></div></div><div id="legacy-load-label">LOADING 0%</div>';
+  splash.innerHTML='<picture><source media="(orientation:landscape)" srcset="legacy-loading-landscape.jpg"><img src="legacy-loading-portrait.jpg" alt="Legacy Loading"></picture><div class="ok-mask"></div><div id="legacy-load-track"><div id="legacy-load-fill"></div></div><div id="legacy-load-label">LOADING 0.0%</div>';
   document.body.appendChild(splash);
   var fill=document.getElementById('legacy-load-fill'),label=document.getElementById('legacy-load-label');
   var source=document.getElementById('status-progress'),canvas=document.querySelector('canvas');
-  var shown=0,gamePart=-1,gameDone=false,startedAt0=0;
+  var shown=0,gamePart=-1,gameDone=false,startedAt0=0,gameText='';
+  // The download's share of the bar is what it really takes (owner, Nov 1: "bogus on
+  // 60%"): a fresh download grows to 60%, a cached one (done in a blink) stays ~5-10%,
+  // and the game's own loading fills the rest from wherever the download ended.
+  var pageStart=Date.now(),dlShare=-1;
   function lift(){if(splash.isConnected)splash.remove();watch.disconnect();}
-  window.LegacyLoad={set:function(p){gamePart=Math.max(gamePart,Math.max(0,Math.min(100,+p||0)));sync();},
+  window.LegacyLoad={set:function(p,t){gamePart=Math.max(gamePart,Math.max(0,Math.min(100,+p||0)));if(t)gameText=String(t);sync();},
     done:function(){gameDone=true;gamePart=100;sync();lift();}};
   function sync(){
     if(!source||!source.isConnected)source=document.getElementById('status-progress');
@@ -225,14 +310,22 @@ document.addEventListener('DOMContentLoaded',function(){
       else if(source.clientWidth>0)godotPart=100*bar.getBoundingClientRect().width/source.getBoundingClientRect().width;
     }
     if(!Number.isFinite(godotPart))godotPart=0;
-    // One bar for the whole load (owner): the download fills the first 60%, then the
+    // One bar for the whole load (owner): the download fills its share, then the
     // game's own loading (beams, buildings, effects, costumes) fills the rest through
     // window.LegacyLoad, and the cover only lifts when the game says it is all loaded.
-    var pct=Math.max(0,Math.min(60,0.6*(browserPart+0.9*Math.max(0,Math.min(100,godotPart)))));
-    if(gamePart>=0)pct=60+0.4*gamePart;
+    var dl=Math.max(0,Math.min(100,browserPart+0.9*Math.max(0,Math.min(100,godotPart))));
+    var share=dlShare>=0?dlShare:Math.min(60,5+10*(Date.now()-pageStart)/1000);
+    if(dlShare<0&&(godotPart>=99.5||gamePart>=0))dlShare=share;
+    var pct=share*dl/100;
+    if(gamePart>=0)pct=share+(100-share)*gamePart/100;
     shown=Math.max(shown,pct);
     fill.style.width=shown+'%';
-    label.textContent='LOADING '+Math.round(shown)+'%';
+    // Say what stage it's at (owner: the bar sat at 60% with no word of why): the
+    // download, then the engine starting up (it can't report), then the game's files.
+    var downloaded=godotPart>=99.5||dlShare>=0;
+    if(gamePart>=0)label.textContent=(gameText||'LOADING THE GAME')+' '+shown.toFixed(1)+'%';
+    else if(downloaded)label.textContent='STARTING THE GAME... '+shown.toFixed(1)+'%';
+    else label.textContent='DOWNLOADING '+shown.toFixed(1)+'%';
   }
   // Observe Godot's own progress element, not our overlay: avoid mutation loops.
   var watch=new MutationObserver(function(){
@@ -311,7 +404,7 @@ document.addEventListener('DOMContentLoaded',function(){
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":88726556,"index.wasm":38034280},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":71689800,"index.wasm":38034280},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
