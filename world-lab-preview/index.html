@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
+		<title>Legacy</title>
+		<style>
+html, body, #canvas {
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+body {
+	color: white;
+	background-color: black;
+	overflow: hidden;
+	touch-action: none;
+}
+
+#canvas {
+	display: block;
+}
+
+#canvas:focus {
+	outline: none;
+}
+
+#status, #status-splash, #status-progress {
+	position: absolute;
+	left: 0;
+	right: 0;
+}
+
+#status, #status-splash {
+	top: 0;
+	bottom: 0;
+}
+
+#status {
+	background-color: #242424;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	visibility: hidden;
+}
+
+#status-splash {
+	max-height: 100%;
+	max-width: 100%;
+	margin: auto;
+}
+
+#status-splash.show-image--false {
+	display: none;
+}
+
+#status-splash.fullsize--true {
+	height: 100%;
+	width: 100%;
+	object-fit: contain;
+}
+
+#status-splash.use-filter--false {
+	image-rendering: pixelated;
+}
+
+#status-progress, #status-notice {
+	display: none;
+}
+
+#status-progress {
+	bottom: 10%;
+	width: 50%;
+	margin: 0 auto;
+}
+
+#status-notice {
+	background-color: #5b3943;
+	border-radius: 0.5rem;
+	border: 1px solid #9b3943;
+	color: #e0e0e0;
+	font-family: 'Noto Sans', 'Droid Sans', Arial, sans-serif;
+	line-height: 1.3;
+	margin: 0 2rem;
+	overflow: hidden;
+	padding: 1rem;
+	text-align: center;
+	z-index: 1;
+}
+		</style>
+		<link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
+<link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
+<link rel="manifest" href="index.manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, viewport-fit=cover">
+<link rel="apple-touch-icon" href="index.180x180.png">
+<meta name="apple-mobile-web-app-title" content="Legacy">
+<meta name="theme-color" content="#07111b">
+<style>
+html,body{background:#000}
+#rotate-note{display:none;position:fixed;inset:0;z-index:99;background:#000;color:#cfe3f5;font:600 20px sans-serif;align-items:center;justify-content:center;text-align:center;padding:24px}
+@media (orientation: portrait){#rotate-note{display:none}}
+</style>
+<script>
+(function(){
+  // Landscape only, true fullscreen. Chrome only grants fullscreen on an activating gesture
+  // (finger lift: pointerup / touchend / click, not touch-down), so ask on those, synchronously.
+  function fsElement(){return document.fullscreenElement||document.webkitFullscreenElement;}
+  function lock(){
+    if(fsElement())return;
+    var el=document.documentElement;
+    var go=null;
+    try{go=el.requestFullscreen?el.requestFullscreen({navigationUI:'hide'}):(el.webkitRequestFullscreen?el.webkitRequestFullscreen():null);}catch(e){}
+    Promise.resolve(go).catch(function(){}).then(function(){
+      try{screen.orientation.lock('landscape').catch(function(){});}catch(e){}
+    });
+  }
+  ['pointerup','touchend','click'].forEach(function(t){window.addEventListener(t,lock,{passive:true,capture:true});});
+  window.addEventListener('DOMContentLoaded',function(){
+    var d=document.createElement('div');d.id='rotate-note';d.textContent='';
+    document.body.appendChild(d);
+  });
+})();
+</script>
+	
+<script>
+(() => {
+  // The page's own build; the game pack reports its own (BuildStamp) through checkNow,
+  // and that is what's compared: a pack served stale from a cache shows as out of date.
+  const pageBuild = "06229373fec8c68fe1fecac85b4e70ac23727430";
+  let running = pageBuild;
+  let latest = '';
+  let latestAt = '';
+  let state = 'unknown';
+  let dialog = null;
+  let requestSerial = 0;
+  let checking = null;
+  const SCOPE = '/world-lab-preview/';
+  const CACHE_PREFIX = 'Legacy-world-lab-preview-cache-';
+  // A page build seen on this device for the first time while an older service worker
+  // still controls it: that worker would hand the engine its old cached pack, so clear
+  // it once and reload (the first visit after each deploy only).
+  try {
+    const seen = localStorage.getItem('legacy_page_build');
+    if (seen !== pageBuild) {
+      localStorage.setItem('legacy_page_build', pageBuild);
+      if (seen && navigator.serviceWorker && navigator.serviceWorker.controller) {
+        (async () => {
+          try {
+            for (const reg of await navigator.serviceWorker.getRegistrations()) {
+              if (reg.scope.indexOf(SCOPE) !== -1) await reg.unregister();
+            }
+            for (const key of await caches.keys()) {
+              if (key.startsWith(CACHE_PREFIX)) await caches.delete(key);
+            }
+          } catch (_) {}
+          location.reload();
+        })();
+      }
+    }
+  } catch (_) {}
+  const removePrompt = () => {
+    if (dialog) dialog.remove();
+    dialog = null;
+  };
+  const when = (iso) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d)) return '';
+    return d.toLocaleString(undefined, {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'});
+  };
+  // Everything the update needs, past every cache: the service worker and its caches go,
+  // the game's files are fetched fresh into the browser cache, then the page reloads.
+  const update = async (button) => {
+    const say = (t) => { if (button) button.textContent = t; };
+    say('CLEARING OLD FILES...');
+    try {
+      if (navigator.serviceWorker) {
+        for (const reg of await navigator.serviceWorker.getRegistrations()) {
+          if (reg.scope.indexOf(SCOPE) !== -1) await reg.unregister();
+        }
+      }
+      if (window.caches) {
+        for (const key of await caches.keys()) {
+          if (key.startsWith(CACHE_PREFIX)) await caches.delete(key);
+        }
+      }
+      sessionStorage.removeItem('legacy_coi_reload_attempted');
+      localStorage.setItem('legacy_page_build', latest);
+    } catch (_) {}
+    const files = ['index.html', 'index.js', 'index.wasm', 'index.pck', 'index.audio.worklet.js', 'index.audio.position.worklet.js'];
+    let done = 0;
+    say('DOWNLOADING UPDATE 0%');
+    await Promise.all(files.map((f) => fetch(f, {cache:'reload'}).then((r) => r.ok ? r.arrayBuffer() : null).catch(() => null).then(() => {
+      done += 1;
+      say('DOWNLOADING UPDATE ' + Math.round(100 * done / files.length) + '%');
+    })));
+    say('RESTARTING...');
+    location.replace(location.pathname + '?v=' + latest.slice(0, 12));
+  };
+  const showPrompt = () => {
+    if (!latest || latest === running || dialog || !document.body) return;
+    dialog = document.createElement('div');
+    dialog.id = 'legacy-update-prompt';
+    dialog.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.78);padding:20px;box-sizing:border-box';
+    const panel = document.createElement('div');
+    panel.style.cssText = 'width:min(440px,95vw);border:2px solid #53caff;border-radius:14px;background:#091426;color:#e8f6ff;padding:22px;text-align:center;font:16px sans-serif;box-shadow:0 0 25px #145a9a';
+    const heading = document.createElement('h2');
+    heading.textContent = 'LEGACY UPDATE AVAILABLE';
+    heading.style.cssText = 'margin:0 0 14px;font-size:21px';
+    const message = document.createElement('p');
+    message.textContent = 'A newer build is out. Update to play with everyone on the same version.';
+    const versions = document.createElement('p');
+    versions.style.cssText = 'font:13px monospace;color:#9cc9e8;margin:10px 0 0';
+    versions.textContent = 'NEW ' + latest.slice(0, 7) + (latestAt ? ' (' + when(latestAt) + ')' : '') + '  ·  YOURS ' + String(running).slice(0, 7);
+    const button = document.createElement('button');
+    button.textContent = 'UPDATE LEGACY';
+    button.style.cssText = 'padding:13px 26px;margin-top:14px;background:#1666b8;color:white;border:1px solid #81dbff;border-radius:8px;font:bold 17px sans-serif;cursor:pointer';
+    button.onclick = () => {
+      if (button.disabled) return;
+      button.disabled = true;
+      update(button);
+    };
+    panel.append(heading, message, versions, button);
+    dialog.appendChild(panel);
+    document.body.appendChild(dialog);
+  };
+  const check = () => {
+    const serial = ++requestSerial;
+    checking = (async () => {
+      try {
+        const response = await fetch('legacy-version.json?check=' + Date.now(), {cache:'no-store'});
+        if (!response.ok) throw new Error('manifest ' + response.status);
+        const data = await response.json();
+        if (serial !== requestSerial) return;
+        if (!data.build || !/^[a-f0-9]{40}$/.test(data.build)) throw new Error('bad manifest');
+        latest = data.build;
+        latestAt = data.built_at || '';
+        state = latest === running ? 'current' : 'update';
+        if (state === 'current') removePrompt();
+      } catch (_) {
+        // No answer must never block the game.
+        if (serial === requestSerial) state = 'unknown';
+      }
+    })();
+    return checking;
+  };
+  window.LegacyVersionGate = {
+    // The game asks with its own pack's build as the loading screen starts, and the
+    // warning screen holds OK till status() is no longer 'checking' (owner, Nov 1).
+    checkNow(packBuild) {
+      if (packBuild && /^[a-f0-9]{40}$/.test(packBuild)) running = packBuild;
+      state = 'checking';
+      check();
+      return true;
+    },
+    status() { return state; },
+    running() { return running; },
+    latest() { return latest; },
+    updateReady() { return !!latest && latest !== running; },
+    show() { showPrompt(); },
+    update() { return update(null); },
+    // Older packs called this; the prompt now only comes up when the game asks.
+    setTitleActive(_) {}
+  };
+  // While playing, the check keeps running quietly; the next warning screen acts on it.
+  document.addEventListener('visibilitychange', () => {if (!document.hidden && state !== 'checking') check();});
+  setInterval(() => {if (!document.hidden && state !== 'checking') check();}, 120000);
+})();
+</script>
+<script src="legacy_text_input.js"></script><script src="legacy_social_auth.js"></script><style>
+#legacy-web-loading{position:fixed;inset:0;z-index:10000;pointer-events:none;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#legacy-web-loading img{width:100%;height:100%;object-fit:cover}
+#legacy-web-loading .ok-mask{position:absolute;inset:66% 0 0;background:linear-gradient(to bottom,transparent 0%,rgba(0,0,0,.75) 55%,#000 100%)}
+
+#legacy-load-track{position:absolute;left:22%;top:81%;width:56%;height:26px;box-sizing:border-box;border:2px solid #f329c6;border-radius:8px;background:#070c25;box-shadow:0 0 12px #1d8cff;overflow:hidden}
+#legacy-load-fill{height:100%;width:0;background:repeating-linear-gradient(90deg,#00d6ff 0,#00d6ff 13px,#183e9b 13px,#183e9b 16px);transition:width .12s linear}
+#legacy-load-label{position:absolute;left:0;top:88%;width:100%;text-align:center;color:#e7f5ff;font:700 16px sans-serif;text-shadow:0 0 8px #008cff}
+@media (orientation:landscape){#legacy-load-track{left:33%;top:76%;width:34%;height:28px}#legacy-load-label{top:85%}}
+#status,#status-progress,#status-indeterminate,#status-notice{visibility:hidden!important}
+</style><script>
+document.addEventListener('DOMContentLoaded',function(){
+  var splash=document.createElement('div');splash.id='legacy-web-loading';
+  splash.innerHTML='<picture><source media="(orientation:landscape)" srcset="legacy-loading-landscape.jpg"><img src="legacy-loading-portrait.jpg" alt="Legacy Loading"></picture><div class="ok-mask"></div><div id="legacy-load-track"><div id="legacy-load-fill"></div></div><div id="legacy-load-label">LOADING 0.0%</div>';
+  document.body.appendChild(splash);
+  var fill=document.getElementById('legacy-load-fill'),label=document.getElementById('legacy-load-label');
+  var source=document.getElementById('status-progress'),canvas=document.querySelector('canvas');
+  var shown=0,gamePart=-1,gameDone=false,startedAt0=0,gameText='';
+  // The download's share of the bar is what it really takes (owner, Nov 1: "bogus on
+  // 60%"): a fresh download grows to 60%, a cached one (done in a blink) stays ~5-10%,
+  // and the game's own loading fills the rest from wherever the download ended.
+  var pageStart=Date.now(),dlShare=-1;
+  function lift(){if(splash.isConnected)splash.remove();watch.disconnect();}
+  window.LegacyLoad={set:function(p,t){gamePart=Math.max(gamePart,Math.max(0,Math.min(100,+p||0)));if(t)gameText=String(t);sync();},
+    done:function(){gameDone=true;gamePart=100;sync();lift();}};
+  function sync(){
+    if(!source||!source.isConnected)source=document.getElementById('status-progress');
+    // Browser bootstrap occupies the first 10%; Godot's actual loader
+    // fills the remaining 90%. Progress never resets between phases.
+    var browserPart=document.readyState==='loading'?0:10;
+    var godotPart=0;
+    if(source){
+      var bar=source.firstElementChild||source;
+      var style=bar.style.width||'';
+      if(style.endsWith('%'))godotPart=parseFloat(style);
+      else if(source.clientWidth>0)godotPart=100*bar.getBoundingClientRect().width/source.getBoundingClientRect().width;
+    }
+    if(!Number.isFinite(godotPart))godotPart=0;
+    // One bar for the whole load (owner): the download fills its share, then the
+    // game's own loading (beams, buildings, effects, costumes) fills the rest through
+    // window.LegacyLoad, and the cover only lifts when the game says it is all loaded.
+    var dl=Math.max(0,Math.min(100,browserPart+0.9*Math.max(0,Math.min(100,godotPart))));
+    var share=dlShare>=0?dlShare:Math.min(60,5+10*(Date.now()-pageStart)/1000);
+    if(dlShare<0&&(godotPart>=99.5||gamePart>=0))dlShare=share;
+    var pct=share*dl/100;
+    if(gamePart>=0)pct=share+(100-share)*gamePart/100;
+    shown=Math.max(shown,pct);
+    fill.style.width=shown+'%';
+    // Say what stage it's at (owner: the bar sat at 60% with no word of why): the
+    // download, then the engine starting up (it can't report), then the game's files.
+    var downloaded=godotPart>=99.5||dlShare>=0;
+    if(gamePart>=0)label.textContent=(gameText||'LOADING THE GAME')+' '+shown.toFixed(1)+'%';
+    else if(downloaded)label.textContent='STARTING THE GAME... '+shown.toFixed(1)+'%';
+    else label.textContent='DOWNLOADING '+shown.toFixed(1)+'%';
+  }
+  // Observe Godot's own progress element, not our overlay: avoid mutation loops.
+  var watch=new MutationObserver(function(){
+    sync();
+    var status=document.getElementById('status');
+    var started=canvas&&canvas.width>0&&canvas.height>0&&
+      getComputedStyle(canvas).display!=='none'&&
+      (!status||getComputedStyle(status).display==='none');
+    if(started&&!startedAt0)startedAt0=Date.now();
+  });
+  var status=document.getElementById('status');
+  if(status)watch.observe(status,{attributes:true,childList:true,subtree:true,attributeFilter:['style','class']});
+  if(source)watch.observe(source,{attributes:true,childList:true,subtree:true,attributeFilter:['style','class']});
+  sync();
+  // Godot can start without toggling #status; never leave the overlay blocking play.
+  var poll=setInterval(function(){
+    if(!splash.isConnected){clearInterval(poll);return;}
+    sync();
+    var status=document.getElementById('status');
+    if(canvas&&canvas.width>0&&canvas.height>0&&getComputedStyle(canvas).display!=='none'&&
+      (!status||getComputedStyle(status).display==='none')){
+      if(!startedAt0)startedAt0=Date.now();
+      // A game that never reports (an older build) still gets uncovered.
+      if(gameDone||(gamePart<0&&Date.now()-startedAt0>8000)||Date.now()-startedAt0>90000){
+        lift();clearInterval(poll);
+      }
+    }
+  },250);
+  // A frozen bootstrap must not strand the player behind a silent bar.
+  // Display a recoverable error instead of falsely marking load complete.
+  var startedAt=Date.now(),lastAdvance=Date.now(),lastShown=shown;
+  var watchdog=setInterval(function(){
+    if(!splash.isConnected){clearInterval(watchdog);return;}
+    if(shown>lastShown+0.1){lastShown=shown;lastAdvance=Date.now();}
+    if(Date.now()-startedAt<45000 || Date.now()-lastAdvance<30000)return;
+    clearInterval(watchdog);
+    label.textContent='LOADING STALLED — TAP TO RETRY';
+    label.style.cssText+=';pointer-events:auto;cursor:pointer;background:#071425;padding:12px 0';
+    splash.style.pointerEvents='auto';
+    label.onclick=async function(){
+      label.textContent='RESTARTING LEGACY...';
+      try{
+        if('serviceWorker' in navigator){
+          var regs=await navigator.serviceWorker.getRegistrations();
+          for(var reg of regs){
+            if(reg.scope.indexOf('/world-lab-preview/')!==-1)await reg.unregister();
+          }
+        }
+        if('caches' in window){
+          var keys=await caches.keys();
+          for(var key of keys){
+            if(key.startsWith('Legacy-world-lab-preview-cache-'))await caches.delete(key);
+          }
+        }
+      }catch(err){console.warn('Legacy cache recovery:',err);}
+      location.replace(location.pathname+'?recover='+Date.now());
+    };
+  },1000);
+  window.addEventListener('pagehide',function(){clearInterval(watchdog);watch.disconnect();splash.remove()},{once:true});
+});
+</script></head>
+	<body>
+		<canvas id="canvas">
+			Your browser does not support the canvas tag.
+		</canvas>
+
+		<noscript>
+			Your browser does not support JavaScript.
+		</noscript>
+
+		<div id="status">
+			<img id="status-splash" class="show-image--true fullsize--true use-filter--true" src="index.png" alt="">
+			<progress id="status-progress"></progress>
+			<div id="status-notice"></div>
+		</div>
+
+		<script src="index.js"></script>
+		<script>
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":77506816,"index.wasm":38034280},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
+const GODOT_THREADS_ENABLED = false;
+const engine = new Engine(GODOT_CONFIG);
+
+(function () {
+	const statusOverlay = document.getElementById('status');
+	const statusProgress = document.getElementById('status-progress');
+	const statusNotice = document.getElementById('status-notice');
+
+	let initializing = true;
+	let statusMode = '';
+
+	function setStatusMode(mode) {
+		if (statusMode === mode || !initializing) {
+			return;
+		}
+		if (mode === 'hidden') {
+			statusOverlay.remove();
+			initializing = false;
+			return;
+		}
+		statusOverlay.style.visibility = 'visible';
+		statusProgress.style.display = mode === 'progress' ? 'block' : 'none';
+		statusNotice.style.display = mode === 'notice' ? 'block' : 'none';
+		statusMode = mode;
+	}
+
+	function setStatusNotice(text) {
+		while (statusNotice.lastChild) {
+			statusNotice.removeChild(statusNotice.lastChild);
+		}
+		const lines = text.split('\n');
+		lines.forEach((line) => {
+			statusNotice.appendChild(document.createTextNode(line));
+			statusNotice.appendChild(document.createElement('br'));
+		});
+	}
+
+	function displayFailureNotice(err) {
+		console.error(err);
+		if (err instanceof Error) {
+			setStatusNotice(err.message);
+		} else if (typeof err === 'string') {
+			setStatusNotice(err);
+		} else {
+			setStatusNotice('An unknown error occurred.');
+		}
+		setStatusMode('notice');
+		initializing = false;
+	}
+
+	const missing = Engine.getMissingFeatures({
+		threads: GODOT_THREADS_ENABLED,
+	});
+
+	if (missing.length !== 0) {
+		if (GODOT_CONFIG['serviceWorker'] && GODOT_CONFIG['ensureCrossOriginIsolationHeaders'] && 'serviceWorker' in navigator) {
+			let serviceWorkerRegistrationPromise;
+			try {
+				serviceWorkerRegistrationPromise = navigator.serviceWorker.getRegistration();
+			} catch (err) {
+				serviceWorkerRegistrationPromise = Promise.reject(new Error('Service worker registration failed.'));
+			}
+			// There's a chance that installing the service worker would fix the issue
+			Promise.race([
+				serviceWorkerRegistrationPromise.then((registration) => {
+					if (registration != null) {
+						return Promise.reject(new Error('Service worker already exists.'));
+					}
+					return registration;
+				}).then(() => engine.installServiceWorker()),
+				// For some reason, `getRegistration()` can stall
+				new Promise((resolve) => {
+					setTimeout(() => resolve(), 2000);
+				}),
+			]).then(() => {
+				// Reload if there was no error.
+				if (!sessionStorage.getItem('legacy_coi_reload_attempted')) {
+              sessionStorage.setItem('legacy_coi_reload_attempted', '1');
+              window.location.reload();
+            } else {
+              console.error('Legacy: cross-origin isolation unavailable after one retry');
+              displayFailureNotice('Browser initialization failed. Please reopen Legacy in Safari or Chrome.');
+            }
+			}).catch((err) => {
+				console.error('Error while registering service worker:', err);
+			});
+		} else {
+			// Display the message as usual
+			const missingMsg = 'Error\nThe following features required to run Godot projects on the Web are missing:\n';
+			displayFailureNotice(missingMsg + missing.join('\n'));
+		}
+	} else {
+		setStatusMode('progress');
+		engine.startGame({
+			'onProgress': function (current, total) {
+				if (current > 0 && total > 0) {
+					statusProgress.value = current;
+					statusProgress.max = total;
+				} else {
+					statusProgress.removeAttribute('value');
+					statusProgress.removeAttribute('max');
+				}
+			},
+		}).then(() => {
+			setStatusMode('hidden');
+		}, displayFailureNotice);
+	}
+}());
+		</script>
+	</body>
+</html>
+
