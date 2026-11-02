@@ -4,7 +4,7 @@
 // Incrementing CACHE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
 /** @type {string} */
-const CACHE_VERSION = '1793660392|10435862';
+const CACHE_VERSION = '1793661271|10542155';
 /** @type {string} */
 const CACHE_PREFIX = 'Legacy-npc-voice-test-cache-';
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
@@ -94,6 +94,7 @@ self.addEventListener(
 	 * @param {FetchEvent} event
 	 */
 	(event) => {
+		if (event.request.cache === 'reload' || event.request.cache === 'no-store') return;
 		const isNavigate = event.request.mode === 'navigate';
 		const url = event.request.url || '';
 		const referrer = event.request.referrer || '';

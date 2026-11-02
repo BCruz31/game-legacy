@@ -131,7 +131,7 @@ html,body{background:#000}
 (() => {
   // The page's own build; the game pack reports its own (BuildStamp) through checkNow,
   // and that is what's compared: a pack served stale from a cache shows as out of date.
-  const pageBuild = "1ad38747f290b916ff8be85161588c8451f10bae";
+  const pageBuild = "452cfa580ecb87a963107aca6a9265e54802cf00";
   let running = pageBuild;
   let latest = '';
   let latestAt = '';
@@ -145,9 +145,9 @@ html,body{background:#000}
   // still controls it: that worker would hand the engine its old cached pack, so clear
   // it once and reload (the first visit after each deploy only).
   try {
-    const seen = localStorage.getItem('legacy_page_build');
+    const seen = localStorage.getItem('legacy_page_build:' + SCOPE);
     if (seen !== pageBuild) {
-      localStorage.setItem('legacy_page_build', pageBuild);
+      localStorage.setItem('legacy_page_build:' + SCOPE, pageBuild);
       if (seen && navigator.serviceWorker && navigator.serviceWorker.controller) {
         (async () => {
           try {
@@ -190,15 +190,30 @@ html,body{background:#000}
         }
       }
       sessionStorage.removeItem('legacy_coi_reload_attempted');
-      localStorage.setItem('legacy_page_build', latest);
     } catch (_) {}
     const files = ['index.html', 'index.js', 'index.wasm', 'index.pck', 'index.audio.worklet.js', 'index.audio.position.worklet.js'];
     let done = 0;
     say('DOWNLOADING UPDATE 0%');
-    await Promise.all(files.map((f) => fetch(f, {cache:'reload'}).then((r) => r.ok ? r.arrayBuffer() : null).catch(() => null).then(() => {
-      done += 1;
-      say('DOWNLOADING UPDATE ' + Math.round(100 * done / files.length) + '%');
-    })));
+    try {
+      for (const file of files) {
+        const response = await fetch(file, {cache:'reload'});
+        if (!response.ok) throw new Error(file);
+        if (file === 'index.html') {
+          const html = await response.text();
+          if (!html.includes('const pageBuild = "' + latest + '"')) throw new Error('stale page');
+        } else if (response.body) {
+          const reader = response.body.getReader();
+          while (!(await reader.read()).done) {}
+        } else {
+          await response.arrayBuffer();
+        }
+        say('DOWNLOADING UPDATE ' + Math.round(100 * ++done / files.length) + '%');
+      }
+    } catch (_) {
+      say('UPDATE INCOMPLETE — TAP TO RETRY');
+      if (button) button.disabled = false;
+      return;
+    }
     say('RESTARTING...');
     location.replace(location.pathname + '?v=' + latest.slice(0, 12));
   };
@@ -404,7 +419,7 @@ document.addEventListener('DOMContentLoaded',function(){
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":82972132,"index.wasm":38034280},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":82972292,"index.wasm":38034280},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
