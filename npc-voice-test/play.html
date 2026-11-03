@@ -131,7 +131,7 @@ html,body{background:#000}
 (() => {
   // The page's own build; the game pack reports its own (BuildStamp) through checkNow,
   // and that is what's compared: a pack served stale from a cache shows as out of date.
-  const pageBuild = "594f595190ff609ecee6a60d514a405fbdb60881";
+  const pageBuild = "40c08e49277d3a686983fa72631230b0f3561ddf";
   let running = pageBuild;
   let latest = '';
   let latestAt = '';
@@ -396,7 +396,7 @@ document.addEventListener('DOMContentLoaded',function(){
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"game-594f595190ff609ecee6a60d514a405fbdb60881.pck":82968388,"index.wasm":38034280},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"game-40c08e49277d3a686983fa72631230b0f3561ddf.pck":82968356,"index.wasm":38034280},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
@@ -490,7 +490,7 @@ const engine = new Engine(GODOT_CONFIG);
 		}
 	} else {
 		setStatusMode('progress');
-		engine.startGame({'mainPack': "game-594f595190ff609ecee6a60d514a405fbdb60881.pck",
+		engine.startGame({'mainPack': "game-40c08e49277d3a686983fa72631230b0f3561ddf.pck",
 			'onProgress': function (current, total) {
 				if (current > 0 && total > 0) {
 					statusProgress.value = current;

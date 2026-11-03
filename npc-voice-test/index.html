@@ -131,7 +131,7 @@ html,body{background:#000}
 (() => {
   // The page's own build; the game pack reports its own (BuildStamp) through checkNow,
   // and that is what's compared: a pack served stale from a cache shows as out of date.
-  const pageBuild = "594f595190ff609ecee6a60d514a405fbdb60881";
+  const pageBuild = "40c08e49277d3a686983fa72631230b0f3561ddf";
   let running = pageBuild;
   let latest = '';
   let latestAt = '';
@@ -191,31 +191,8 @@ html,body{background:#000}
       }
       sessionStorage.removeItem('legacy_coi_reload_attempted');
     } catch (_) {}
-    const files = ['index.html', 'index.js', 'index.wasm', 'index.pck', 'index.audio.worklet.js', 'index.audio.position.worklet.js'];
-    let done = 0;
-    say('DOWNLOADING UPDATE 0%');
-    try {
-      for (const file of files) {
-        const response = await fetch(file, {cache:'reload'});
-        if (!response.ok) throw new Error(file);
-        if (file === 'index.html') {
-          const html = await response.text();
-          if (!html.includes('const pageBuild = "' + latest + '"')) throw new Error('stale page');
-        } else if (response.body) {
-          const reader = response.body.getReader();
-          while (!(await reader.read()).done) {}
-        } else {
-          await response.arrayBuffer();
-        }
-        say('DOWNLOADING UPDATE ' + Math.round(100 * ++done / files.length) + '%');
-      }
-    } catch (_) {
-      say('UPDATE INCOMPLETE — TAP TO RETRY');
-      if (button) button.disabled = false;
-      return;
-    }
-    say('RESTARTING...');
-    location.replace(location.pathname + '?v=' + latest.slice(0, 12));
+    say('OPENING UPDATED GAME...');
+    location.replace('play.html?v=' + latest);
   };
   const showPrompt = () => {
     if (!latest || latest === running || dialog || !document.body) return;
@@ -419,7 +396,7 @@ document.addEventListener('DOMContentLoaded',function(){
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":82968388,"index.wasm":38034280},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"game-40c08e49277d3a686983fa72631230b0f3561ddf.pck":82968356,"index.wasm":38034280},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
@@ -513,7 +490,7 @@ const engine = new Engine(GODOT_CONFIG);
 		}
 	} else {
 		setStatusMode('progress');
-		engine.startGame({
+		engine.startGame({'mainPack': "game-40c08e49277d3a686983fa72631230b0f3561ddf.pck",
 			'onProgress': function (current, total) {
 				if (current > 0 && total > 0) {
 					statusProgress.value = current;
