@@ -4,7 +4,7 @@
 // Incrementing CACHE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
 /** @type {string} */
-const CACHE_VERSION = '1793759305|10623567';
+const CACHE_VERSION = '1793760039|10313788';
 /** @type {string} */
 const CACHE_PREFIX = 'Legacy-world-lab-preview-cache-';
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
