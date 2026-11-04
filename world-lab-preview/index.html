@@ -131,7 +131,7 @@ html,body{background:#000}
 (() => {
   // The page's own build; the game pack reports its own (BuildStamp) through checkNow,
   // and that is what's compared: a pack served stale from a cache shows as out of date.
-  const pageBuild = "f9a9cc2c779a82aa4f71bd34b0b1bfa7e9ad3f24";
+  const pageBuild = "18a124b50416f56f515d508ea9dcee22f5bf1cd2";
   let running = pageBuild;
   let latest = '';
   let latestAt = '';
@@ -277,6 +277,7 @@ html,body{background:#000}
 #legacy-web-loading img{width:100%;height:100%;object-fit:cover}
 #legacy-web-loading .ok-mask{position:absolute;inset:66% 0 0;background:linear-gradient(to bottom,transparent 0%,rgba(0,0,0,.75) 55%,#000 100%)}
 
+#legacy-load-track,#legacy-load-label{display:none}
 #legacy-load-track{position:absolute;left:22%;top:81%;width:56%;height:26px;box-sizing:border-box;border:2px solid #f329c6;border-radius:8px;background:#070c25;box-shadow:0 0 12px #1d8cff;overflow:hidden}
 #legacy-load-fill{height:100%;width:0;background:repeating-linear-gradient(90deg,#00d6ff 0,#00d6ff 13px,#183e9b 13px,#183e9b 16px);transition:width .12s linear}
 #legacy-load-label{position:absolute;left:0;top:88%;width:100%;text-align:center;color:#e7f5ff;font:700 16px sans-serif;text-shadow:0 0 8px #008cff}
@@ -409,11 +410,11 @@ document.addEventListener('DOMContentLoaded',function(){
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":83362196,"index.wasm":38034280},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":83362212,"index.wasm":38034280},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 (() => {
-  const busted = 'index.pck?v=' + "f9a9cc2c779a";
+  const busted = 'index.pck?v=' + "18a124b50416";
   const preload = engine.preloadFile.bind(engine);
   GODOT_CONFIG.fileSizes[busted] = GODOT_CONFIG.fileSizes['index.pck'];
   engine.preloadFile = (file, path) => preload(file === 'index.pck' ? busted : file, path || file);
