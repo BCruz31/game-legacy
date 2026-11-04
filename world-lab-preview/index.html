@@ -131,7 +131,7 @@ html,body{background:#000}
 (() => {
   // The page's own build; the game pack reports its own (BuildStamp) through checkNow,
   // and that is what's compared: a pack served stale from a cache shows as out of date.
-  const pageBuild = "1c7cf4f0f2dd570dd0884dd8a0ed363efac52016";
+  const pageBuild = "96be48bab85e9f74e48c73fd679f76b9278a9cd7";
   let running = pageBuild;
   let latest = '';
   let latestAt = '';
@@ -141,27 +141,12 @@ html,body{background:#000}
   let checking = null;
   const SCOPE = '/world-lab-preview/';
   const CACHE_PREFIX = 'Legacy-world-lab-preview-cache-';
-  // A page build seen on this device for the first time while an older service worker
-  // still controls it: that worker would hand the engine its old cached pack, so clear
-  // it once and reload (the first visit after each deploy only).
+  // Do not refresh the page during startup. Safari may serve an older
+  // service-worker-controlled document after an update; an automatic
+  // reload here can repeatedly restart Godot before it reaches title.
+  // The version gate below offers an explicit update action instead.
   try {
-    const seen = localStorage.getItem('legacy_page_build');
-    if (seen !== pageBuild) {
-      localStorage.setItem('legacy_page_build', pageBuild);
-      if (seen && navigator.serviceWorker && navigator.serviceWorker.controller) {
-        (async () => {
-          try {
-            for (const reg of await navigator.serviceWorker.getRegistrations()) {
-              if (reg.scope.indexOf(SCOPE) !== -1) await reg.unregister();
-            }
-            for (const key of await caches.keys()) {
-              if (key.startsWith(CACHE_PREFIX)) await caches.delete(key);
-            }
-          } catch (_) {}
-          location.reload();
-        })();
-      }
-    }
+    localStorage.setItem('legacy_page_build', pageBuild);
   } catch (_) {}
   const removePrompt = () => {
     if (dialog) dialog.remove();
@@ -195,10 +180,20 @@ html,body{background:#000}
     const files = ['index.html', 'index.js', 'index.wasm', 'index.pck', 'index.audio.worklet.js', 'index.audio.position.worklet.js'];
     let done = 0;
     say('DOWNLOADING UPDATE 0%');
-    await Promise.all(files.map((f) => fetch(f, {cache:'reload'}).then((r) => r.ok ? r.arrayBuffer() : null).catch(() => null).then(() => {
-      done += 1;
-      say('DOWNLOADING UPDATE ' + Math.round(100 * done / files.length) + '%');
-    })));
+    try {
+      await Promise.all(files.map(async (f) => {
+        const response = await fetch(f, {cache:'reload'});
+        if (!response.ok) throw new Error(f + ': HTTP ' + response.status);
+        await response.arrayBuffer();
+        done += 1;
+        say('DOWNLOADING UPDATE ' + Math.round(100 * done / files.length) + '%');
+      }));
+    } catch (err) {
+      console.error('Legacy update download failed:', err);
+      say('DOWNLOAD FAILED — TAP TO RETRY');
+      if (button) button.disabled = false;
+      return;
+    }
     say('RESTARTING...');
     location.replace(location.pathname + '?v=' + latest.slice(0, 12));
   };
@@ -413,7 +408,7 @@ const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"e
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 (() => {
-  const busted = 'index.pck?v=' + "1c7cf4f0f2dd";
+  const busted = 'index.pck?v=' + "96be48bab85e";
   const preload = engine.preloadFile.bind(engine);
   GODOT_CONFIG.fileSizes[busted] = GODOT_CONFIG.fileSizes['index.pck'];
   engine.preloadFile = (file, path) => preload(file === 'index.pck' ? busted : file, path || file);
