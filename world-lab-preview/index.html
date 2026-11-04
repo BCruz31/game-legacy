@@ -131,7 +131,7 @@ html,body{background:#000}
 (() => {
   // The page's own build; the game pack reports its own (BuildStamp) through checkNow,
   // and that is what's compared: a pack served stale from a cache shows as out of date.
-  const pageBuild = "96be48bab85e9f74e48c73fd679f76b9278a9cd7";
+  const pageBuild = "ddf4382b3bf0d874ad50d3de87851507ce4db83d";
   let running = pageBuild;
   let latest = '';
   let latestAt = '';
@@ -148,6 +148,40 @@ html,body{background:#000}
   try {
     localStorage.setItem('legacy_page_build', pageBuild);
   } catch (_) {}
+  // Diagnostics survive a full navigation, including unexpected browser
+  // process restarts. No automatic navigation is performed here.
+  try {
+    const previous = JSON.parse(sessionStorage.getItem('legacy_startup_trace') || '{}');
+    const now = Date.now();
+    const count = previous.build === pageBuild && now - (previous.time || 0) < 120000
+      ? (previous.count || 0) + 1 : 1;
+    const trace = {build: pageBuild, time: now, count: count, phase: 'page-start'};
+    sessionStorage.setItem('legacy_startup_trace', JSON.stringify(trace));
+    window.LegacyStartupTrace = function(phase) {
+      trace.phase = phase;
+      trace.time = Date.now();
+      sessionStorage.setItem('legacy_startup_trace', JSON.stringify(trace));
+    };
+    if (count > 1) {
+      console.error('Legacy repeated startup', {count: count, previousPhase: previous.phase});
+      document.addEventListener('DOMContentLoaded', function() {
+        const note = document.createElement('div');
+        note.textContent = 'STARTUP RESTART #' + count + ' — PREVIOUS: ' + (previous.phase || 'unknown');
+        note.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:100001;background:#451a24;color:white;font:12px monospace;padding:5px;text-align:center;pointer-events:none';
+        document.body.appendChild(note);
+      }, {once:true});
+    }
+  } catch (err) { console.warn('Legacy startup diagnostics:', err); }
+  // Disable the optional offline service worker in this web preview.
+  // It is not required for the non-threaded export and can retain old
+  // engine files between deployments. Do not reload to remove it.
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function(regs) {
+      return Promise.all(regs.filter(function(reg) {
+        return reg.scope.indexOf(SCOPE) !== -1;
+      }).map(function(reg) { return reg.unregister(); }));
+    }).catch(function(err) { console.warn('Legacy worker cleanup:', err); });
+  }
   const removePrompt = () => {
     if (dialog) dialog.remove();
     dialog = null;
@@ -404,11 +438,11 @@ document.addEventListener('DOMContentLoaded',function(){
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":87577496,"index.wasm":38034280},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":87577496,"index.wasm":38034280},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":""};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 (() => {
-  const busted = 'index.pck?v=' + "96be48bab85e";
+  const busted = 'index.pck?v=' + "ddf4382b3bf0";
   const preload = engine.preloadFile.bind(engine);
   GODOT_CONFIG.fileSizes[busted] = GODOT_CONFIG.fileSizes['index.pck'];
   engine.preloadFile = (file, path) => preload(file === 'index.pck' ? busted : file, path || file);
@@ -504,6 +538,7 @@ const engine = new Engine(GODOT_CONFIG);
 		}
 	} else {
 		setStatusMode('progress');
+		window.LegacyStartupTrace && window.LegacyStartupTrace('godot-start');
 		engine.startGame({
 			'onProgress': function (current, total) {
 				if (current > 0 && total > 0) {
@@ -516,6 +551,7 @@ const engine = new Engine(GODOT_CONFIG);
 			},
 		}).then(() => {
 			setStatusMode('hidden');
+			window.LegacyStartupTrace && window.LegacyStartupTrace('godot-ready');
 		}, displayFailureNotice);
 	}
 }());
