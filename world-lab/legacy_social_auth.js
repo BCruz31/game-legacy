@@ -1,3 +1,4 @@
+// Legacy - created by Benjamin J Cruz. All rights reserved.
 // Google OAuth return bridge. Never log tokens or modify character storage.
 (() => {
   if (window.LegacySocialAuth) return;

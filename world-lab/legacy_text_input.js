@@ -1,3 +1,4 @@
+// Legacy - created by Benjamin J Cruz. All rights reserved.
 // Native DOM text entry for iPhone in-app browsers. Never touches game storage.
 (() => {
   if (window.LegacyTextInput) return;
