@@ -131,7 +131,7 @@ html,body{background:#000}
 (() => {
   // The page's own build; the game pack reports its own (BuildStamp) through checkNow,
   // and that is what's compared: a pack served stale from a cache shows as out of date.
-  const pageBuild = "17ec6cb567b1bf9c4f452c3a286c48651f41a72f";
+  const pageBuild = "86157cb80dad4206fd75045ae18740004f3db0ed";
   let running = pageBuild;
   let latest = '';
   let latestAt = '';
@@ -447,7 +447,7 @@ const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"e
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 (() => {
-  const busted = 'index.pck?v=' + "17ec6cb567b1";
+  const busted = 'index.pck?v=' + "86157cb80dad";
   const preload = engine.preloadFile.bind(engine);
   GODOT_CONFIG.fileSizes[busted] = GODOT_CONFIG.fileSizes['index.pck'];
   engine.preloadFile = (file, path) => preload(file === 'index.pck' ? busted : file, path || file);
