@@ -131,7 +131,7 @@ html,body{background:#000}
 (() => {
   // The page's own build; the game pack reports its own (BuildStamp) through checkNow,
   // and that is what's compared: a pack served stale from a cache shows as out of date.
-  const pageBuild = "892fe6f67ac1abeb0a0f35f5e3febb2743ad58d3";
+  const pageBuild = "dfa8a757951b023a21d984c8b717f6cf6b37cf52";
   let running = pageBuild;
   let latest = '';
   let latestAt = '';
@@ -232,6 +232,7 @@ html,body{background:#000}
       return;
     }
     say('RESTARTING...');
+    window.LegacyLifecycleDiagnostics?.markNavigation('user-update');
     location.replace(location.pathname + '?v=' + latest.slice(0, 12));
   };
   const showPrompt = () => {
@@ -418,6 +419,7 @@ document.addEventListener('DOMContentLoaded',function(){
           }
         }
       }catch(err){console.warn('Legacy cache recovery:',err);}
+      window.LegacyLifecycleDiagnostics?.markNavigation('user-loading-retry');
       location.replace(location.pathname+'?recover='+Date.now());
     };
   },1000);
@@ -445,7 +447,7 @@ const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"e
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 (() => {
-  const busted = 'index.pck?v=' + "892fe6f67ac1";
+  const busted = 'index.pck?v=' + "dfa8a757951b";
   const preload = engine.preloadFile.bind(engine);
   GODOT_CONFIG.fileSizes[busted] = GODOT_CONFIG.fileSizes['index.pck'];
   engine.preloadFile = (file, path) => preload(file === 'index.pck' ? busted : file, path || file);
@@ -526,6 +528,7 @@ const engine = new Engine(GODOT_CONFIG);
 				// Reload if there was no error.
 				if (!sessionStorage.getItem('legacy_coi_reload_attempted')) {
               sessionStorage.setItem('legacy_coi_reload_attempted', '1');
+              window.LegacyLifecycleDiagnostics?.markNavigation('coi-fallback-reload');
               window.location.reload();
             } else {
               console.error('Legacy: cross-origin isolation unavailable after one retry');

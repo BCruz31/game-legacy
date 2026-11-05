@@ -1,13 +1,13 @@
-/* Legacy browser lifecycle diagnostics. No account, token, or character data stored. */
+/* Legacy browser lifecycle diagnostics; stores no account, token, or character data. */
 (function () {
   'use strict';
-  var KEY = 'legacy_lifecycle_trace_v1';
-  var MAX_EVENTS = 30;
+  var KEY = 'legacy_lifecycle_trace_v2';
+  var MAX_EVENTS = 40;
   var now = function () { return Date.now(); };
-  var read = function () {
+  function read() {
     try { return JSON.parse(sessionStorage.getItem(KEY) || '{}'); }
     catch (_) { return {}; }
-  };
+  }
   var previous = read();
   var navigation = (performance.getEntriesByType && performance.getEntriesByType('navigation')[0]) || null;
   var trace = {
@@ -15,23 +15,34 @@
     started: now(),
     navigationType: navigation ? navigation.type : 'unknown',
     previousEvent: previous.lastEvent || 'none',
+    previousIntent: previous.navigationIntent || '',
     previousTime: previous.lastTime || 0,
+    navigationIntent: '',
     lastEvent: 'page-start',
     lastTime: now(),
     events: (previous.events || []).slice(-MAX_EVENTS + 1)
   };
+  function persist() {
+    try { sessionStorage.setItem(KEY, JSON.stringify(trace)); }
+    catch (_) {}
+  }
   function record(name) {
     trace.lastEvent = name;
     trace.lastTime = now();
     trace.events.push({event: name, time: trace.lastTime, page: trace.pageId});
     trace.events = trace.events.slice(-MAX_EVENTS);
-    try { sessionStorage.setItem(KEY, JSON.stringify(trace)); }
-    catch (_) {}
+    persist();
     console.info('[Legacy lifecycle]', name, 'page', trace.pageId);
+  }
+  function markNavigation(reason) {
+    // Explicitly record only our own approved navigation paths; never intercept browser navigation.
+    trace.navigationIntent = String(reason).slice(0, 80);
+    record('intent-' + trace.navigationIntent);
   }
   window.LegacyLifecycleDiagnostics = {
     snapshot: function () { return JSON.parse(JSON.stringify(trace)); },
-    record: record
+    record: record,
+    markNavigation: markNavigation
   };
   record('page-start');
   document.addEventListener('visibilitychange', function () {
@@ -51,9 +62,11 @@
     if (!document.body) return;
     var old = document.getElementById('legacy-lifecycle-report');
     if (old) old.remove();
-    var before = trace.pageId === 1 ? '' :
-      'NEW PAGE #' + trace.pageId + ' | previous: ' + trace.previousEvent;
-    var report = before || 'RETURNED TO PAGE | ' + trace.lastEvent;
+    var report = trace.pageId > 1 ?
+      'NEW PAGE #' + trace.pageId + ' | nav: ' + trace.navigationType +
+      ' | previous: ' + trace.previousEvent +
+      ' | requested: ' + (trace.previousIntent || 'none recorded') :
+      'PAGE ALIVE | ' + trace.lastEvent;
     var note = document.createElement('div');
     note.id = 'legacy-lifecycle-report';
     note.setAttribute('role', 'status');
