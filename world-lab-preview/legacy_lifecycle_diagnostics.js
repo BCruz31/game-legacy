@@ -17,6 +17,11 @@
     previousEvent: previous.lastEvent || 'none',
     previousIntent: previous.navigationIntent || '',
     previousTime: previous.lastTime || 0,
+    previousAgeSeconds: previous.lastTime ? Math.max(0, Math.round((now() - previous.lastTime) / 1000)) : -1,
+    previousVisibility: previous.visibility || 'unknown',
+    previousPageHide: Boolean(previous.pageHide),
+    visibility: document.visibilityState,
+    pageHide: false,
     navigationIntent: '',
     lastEvent: 'page-start',
     lastTime: now(),
@@ -28,6 +33,8 @@
   }
   function record(name) {
     trace.lastEvent = name;
+    trace.visibility = document.visibilityState;
+    if (name.indexOf('pagehide-') === 0) trace.pageHide = true;
     trace.lastTime = now();
     trace.events.push({event: name, time: trace.lastTime, page: trace.pageId});
     trace.events = trace.events.slice(-MAX_EVENTS);
@@ -45,6 +52,12 @@
     markNavigation: markNavigation
   };
   record('page-start');
+  // A persisted heartbeat helps distinguish a page killed without pagehide from a normal exit.
+  // Do not append heartbeat events: keep the event history focused on transitions.
+  window.setInterval(function () {
+    trace.lastTime = now();
+    persist();
+  }, 5000);
   document.addEventListener('visibilitychange', function () {
     record(document.hidden ? 'visibility-hidden' : 'visibility-visible');
     if (!document.hidden) showReport();
@@ -65,7 +78,10 @@
     var report = trace.pageId > 1 ?
       'NEW PAGE #' + trace.pageId + ' | nav: ' + trace.navigationType +
       ' | previous: ' + trace.previousEvent +
-      ' | requested: ' + (trace.previousIntent || 'none recorded') :
+      ' | requested: ' + (trace.previousIntent || 'none recorded') +
+      ' | last seen: ' + (trace.previousAgeSeconds < 0 ? 'unknown' : trace.previousAgeSeconds + 's ago') +
+      ' | visibility: ' + trace.previousVisibility +
+      ' | pagehide: ' + (trace.previousPageHide ? 'yes' : 'no') :
       'PAGE ALIVE | ' + trace.lastEvent;
     var note = document.createElement('div');
     note.id = 'legacy-lifecycle-report';
