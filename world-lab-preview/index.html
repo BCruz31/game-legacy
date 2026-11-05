@@ -131,7 +131,7 @@ html,body{background:#000}
 (() => {
   // The page's own build; the game pack reports its own (BuildStamp) through checkNow,
   // and that is what's compared: a pack served stale from a cache shows as out of date.
-  const pageBuild = "e92411c6a00658e89975aa6098f8b9828eeff802";
+  const pageBuild = "2bf791df31fff5d60803b0c04c7ebdabe4e6fea8";
   let running = pageBuild;
   let latest = '';
   let latestAt = '';
@@ -214,17 +214,38 @@ html,body{background:#000}
     // The pack is fetched at the address the new page will use (index.pck?v=<build>), so
     // the restart finds it in the browser cache instead of downloading it a second time
     // (owner, Nov 5: the update downloaded the game, then the loading bar downloaded it again).
+    // Download sequentially: the old Godot instance is still in memory,
+    // so parallel WASM/PCK arrayBuffer allocations can terminate iOS WebKit.
+    // Stream each response without retaining its full payload in JS memory.
     const files = ['index.html', 'index.js', 'index.wasm', 'index.pck?v=' + latest.slice(0, 12), 'index.audio.worklet.js', 'index.audio.position.worklet.js'];
     let done = 0;
     say('DOWNLOADING UPDATE 0%');
     try {
-      await Promise.all(files.map(async (f) => {
+      for (const f of files) {
         const response = await fetch(f, {cache:'reload'});
         if (!response.ok) throw new Error(f + ': HTTP ' + response.status);
-        await response.arrayBuffer();
+        if (!response.body || !response.body.getReader) {
+          throw new Error('Streaming unavailable; refusing memory-heavy update download');
+        }
+        const reader = response.body.getReader();
+        try {
+          while (true) {
+            const part = await reader.read();
+            if (part.done) break;
+            // Do not collect chunks or concatenate them into an ArrayBuffer.
+          }
+        } finally {
+          reader.releaseLock();
+        }
         done += 1;
         say('DOWNLOADING UPDATE ' + Math.round(100 * done / files.length) + '%');
-      }));
+      }
+      // Ensure the published manifest still matches the build we downloaded.
+      // A deployment during an update must not mix two different versions.
+      const manifestResponse = await fetch('legacy-version.json?verify=' + Date.now(), {cache:'no-store'});
+      if (!manifestResponse.ok) throw new Error('Version verification: HTTP ' + manifestResponse.status);
+      const verified = await manifestResponse.json();
+      if (verified.build !== latest) throw new Error('Build changed while downloading; retry update');
     } catch (err) {
       console.error('Legacy update download failed:', err);
       say('DOWNLOAD FAILED — TAP TO RETRY');
@@ -443,11 +464,11 @@ document.addEventListener('DOMContentLoaded',function(){
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":87659864,"index.wasm":38034280},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":""};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":87659800,"index.wasm":38034280},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":""};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 (() => {
-  const busted = 'index.pck?v=' + "e92411c6a006";
+  const busted = 'index.pck?v=' + "2bf791df31ff";
   const preload = engine.preloadFile.bind(engine);
   GODOT_CONFIG.fileSizes[busted] = GODOT_CONFIG.fileSizes['index.pck'];
   engine.preloadFile = (file, path) => preload(file === 'index.pck' ? busted : file, path || file);
