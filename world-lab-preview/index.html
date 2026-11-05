@@ -131,7 +131,7 @@ html,body{background:#000}
 (() => {
   // The page's own build; the game pack reports its own (BuildStamp) through checkNow,
   // and that is what's compared: a pack served stale from a cache shows as out of date.
-  const pageBuild = "bf8238fba8bb4a24cd7cd30c1f380c5122df41ba";
+  const pageBuild = "9aea8d06b49f07da27050be85a273f09a3ebeda6";
   let running = pageBuild;
   let latest = '';
   let latestAt = '';
@@ -447,7 +447,7 @@ const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"e
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 (() => {
-  const busted = 'index.pck?v=' + "bf8238fba8bb";
+  const busted = 'index.pck?v=' + "9aea8d06b49f";
   const preload = engine.preloadFile.bind(engine);
   GODOT_CONFIG.fileSizes[busted] = GODOT_CONFIG.fileSizes['index.pck'];
   engine.preloadFile = (file, path) => preload(file === 'index.pck' ? busted : file, path || file);
@@ -526,14 +526,9 @@ const engine = new Engine(GODOT_CONFIG);
 				}),
 			]).then(() => {
 				// Reload if there was no error.
-				if (!sessionStorage.getItem('legacy_coi_reload_attempted')) {
-              sessionStorage.setItem('legacy_coi_reload_attempted', '1');
-              window.LegacyLifecycleDiagnostics?.markNavigation('coi-fallback-reload');
-              window.location.reload();
-            } else {
-              console.error('Legacy: cross-origin isolation unavailable after one retry');
-              displayFailureNotice('Browser initialization failed. Please reopen Legacy in Safari or Chrome.');
-            }
+				console.error('Legacy preview: cross-origin isolation fallback was reached; refusing automatic page reload');
+            window.LegacyLifecycleDiagnostics?.record('coi-fallback-blocked');
+            displayFailureNotice('Browser initialization failed. Please reopen Legacy in Safari or Chrome.');
 			}).catch((err) => {
 				console.error('Error while registering service worker:', err);
 			});
