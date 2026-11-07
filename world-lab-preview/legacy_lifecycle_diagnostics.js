@@ -15,6 +15,7 @@
     started: now(),
     navigationType: navigation ? navigation.type : 'unknown',
     previousEvent: previous.lastEvent || 'none',
+    previousRejection: previous.lastRejection || null,
     previousIntent: previous.navigationIntent || '',
     previousTime: previous.lastTime || 0,
     previousAgeSeconds: previous.lastTime ? Math.max(0, Math.round((now() - previous.lastTime) / 1000)) : -1,
@@ -118,6 +119,11 @@
       ' | visibility: ' + trace.previousVisibility +
       ' | pagehide: ' + (trace.previousPageHide ? 'yes' : 'no') :
       'PAGE ALIVE | ' + trace.lastEvent;
+    if (trace.previousRejection) {
+      var failure = trace.previousRejection;
+      report += ' | rejection: ' + String(failure.name || 'unknown') + ': ' + String(failure.message || 'unknown') +
+        ' | stack: ' + String(failure.stack || 'unavailable');
+    }
     var note = document.createElement('div');
     note.id = 'legacy-lifecycle-report';
     note.setAttribute('role', 'status');
@@ -126,6 +132,7 @@
       'padding:9px;border:1px solid #8ac7ff;border-radius:6px;pointer-events:auto';
     var message = document.createElement('span');
     message.textContent = 'LEGACY LIFECYCLE: ' + report;
+    message.style.cssText = 'white-space:pre-wrap;overflow-wrap:anywhere';
     var close = document.createElement('button');
     close.textContent = 'X';
     close.setAttribute('aria-label', 'Dismiss lifecycle diagnostic');
