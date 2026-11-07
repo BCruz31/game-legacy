@@ -51,13 +51,39 @@
     record: record,
     markNavigation: markNavigation
   };
+  // Capture browser-side failures before WebKit can terminate the page.
+  // No game state or account information is retained.
+  window.addEventListener('error', function (event) {
+    record('js-error-' + String(event.message || 'unknown').slice(0, 100));
+  });
+  window.addEventListener('unhandledrejection', function (event) {
+    var reason = event.reason;
+    record('promise-rejection-' + String(reason && reason.message || reason || 'unknown').slice(0, 100));
+  });
+  var startupMilestones = ['page-start', 'godot-ready', 'title-ready'];
+  window.LegacyLifecycleDiagnostics.markStartup = function (stage) {
+    var name = String(stage || 'unknown').slice(0, 60);
+    record('startup-' + name);
+  };
   record('page-start');
   // A persisted heartbeat helps distinguish a page killed without pagehide from a normal exit.
   // Do not append heartbeat events: keep the event history focused on transitions.
   window.setInterval(function () {
     trace.lastTime = now();
+    // Safari does not expose reliable JS/WASM heap usage. Record only
+    // available memory estimates; do not invent a device-memory reading.
+    if (performance && performance.memory) {
+      trace.jsHeapUsed = performance.memory.usedJSHeapSize || 0;
+      trace.jsHeapLimit = performance.memory.jsHeapSizeLimit || 0;
+    }
     persist();
   }, 5000);
+  // Make the previous page's last recorded event inspectable after a crash.
+  // This does not cause a reload and stores no personal or gameplay data.
+  window.LegacyLifecycleDiagnostics.previous = function () {
+    return {event: trace.previousEvent, intent: trace.previousIntent,
+      ageSeconds: trace.previousAgeSeconds, pagehide: trace.previousPageHide};
+  };
   document.addEventListener('visibilitychange', function () {
     record(document.hidden ? 'visibility-hidden' : 'visibility-visible');
     if (!document.hidden) showReport();
