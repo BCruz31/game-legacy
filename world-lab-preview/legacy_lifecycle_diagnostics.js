@@ -58,7 +58,16 @@
   });
   window.addEventListener('unhandledrejection', function (event) {
     var reason = event.reason;
-    record('promise-rejection-' + String(reason && reason.message || reason || 'unknown').slice(0, 100));
+    var message = String(reason && reason.message || reason || 'unknown');
+    // Preserve the script origin across unexpected WebKit restarts.
+    trace.lastRejection = {
+      name: String(reason && reason.name || 'unknown').slice(0, 80),
+      message: message.slice(0, 240),
+      stack: String(reason && reason.stack || '').slice(0, 1200),
+      time: now()
+    };
+    record('promise-rejection-' + message.slice(0, 100));
+    console.error('[Legacy startup rejection]', trace.lastRejection);
   });
   var startupMilestones = ['page-start', 'godot-ready', 'title-ready'];
   window.LegacyLifecycleDiagnostics.markStartup = function (stage) {
