@@ -119,26 +119,41 @@
       ' | visibility: ' + trace.previousVisibility +
       ' | pagehide: ' + (trace.previousPageHide ? 'yes' : 'no') :
       'PAGE ALIVE | ' + trace.lastEvent;
+    report += ' | diagnostics: stack-capture-v3';
     if (trace.previousRejection) {
       var failure = trace.previousRejection;
       report += ' | rejection: ' + String(failure.name || 'unknown') + ': ' + String(failure.message || 'unknown') +
         ' | stack: ' + String(failure.stack || 'unavailable');
+    } else {
+      report += ' | rejection details: unavailable (previous page did not save them)';
     }
     var note = document.createElement('div');
     note.id = 'legacy-lifecycle-report';
     note.setAttribute('role', 'status');
-    note.style.cssText = 'position:fixed;bottom:8px;left:8px;right:8px;z-index:2147483646;' +
+    note.style.cssText = 'position:fixed;bottom:8px;left:8px;right:8px;max-height:65dvh;' +
+      'z-index:2147483646;box-sizing:border-box;overflow-y:auto;overflow-x:hidden;' +
+      '-webkit-overflow-scrolling:touch;overscroll-behavior:contain;' +
       'background:rgba(7,17,27,.94);color:#fff;font:12px/1.4 monospace;' +
       'padding:9px;border:1px solid #8ac7ff;border-radius:6px;pointer-events:auto';
-    var message = document.createElement('span');
-    message.textContent = 'LEGACY LIFECYCLE: ' + report;
-    message.style.cssText = 'white-space:pre-wrap;overflow-wrap:anywhere';
+    // One scrollable diagnostic window contains the complete original red
+    // restart banner and the unabridged lifecycle report.
+    var header = document.createElement('div');
+    header.style.cssText = 'position:sticky;top:-9px;background:#451a24;color:white;' +
+      'padding:12px 9px;margin:-9px -9px 9px;min-height:28px;z-index:1;' +
+      'box-sizing:border-box;overflow-wrap:anywhere;white-space:pre-wrap';
+    var restart = document.createElement('span');
+    restart.textContent = window.LegacyStartupRestartMessage || 'LEGACY LIFECYCLE';
     var close = document.createElement('button');
     close.textContent = 'X';
-    close.setAttribute('aria-label', 'Dismiss lifecycle diagnostic');
-    close.style.cssText = 'float:right;margin-left:10px';
+    close.setAttribute('aria-label', 'Dismiss startup and lifecycle diagnostics');
+    close.style.cssText = 'float:right;margin-left:12px;padding:4px 12px;cursor:pointer';
     close.onclick = function () { note.remove(); };
-    note.appendChild(close);
+    header.appendChild(close);
+    header.appendChild(restart);
+    var message = document.createElement('div');
+    message.textContent = 'LEGACY LIFECYCLE: ' + report;
+    message.style.cssText = 'white-space:pre-wrap;overflow-wrap:anywhere';
+    note.appendChild(header);
     note.appendChild(message);
     document.body.appendChild(note);
   }
