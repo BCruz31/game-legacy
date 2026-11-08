@@ -131,7 +131,7 @@ html,body{background:#000}
 (() => {
   // The page's own build; the game pack reports its own (BuildStamp) through checkNow,
   // and that is what's compared: a pack served stale from a cache shows as out of date.
-  const pageBuild = "2fa1a62bd17d014665f24c15b786ad171ba33907";
+  const pageBuild = "5d48786e82c1ac44cf8e2c1d0c6d87e24424a782";
   let running = pageBuild;
   let latest = '';
   let latestAt = '';
@@ -323,7 +323,7 @@ html,body{background:#000}
   setInterval(() => {if (!document.hidden && state !== 'checking') check();}, 120000);
 })();
 </script>
-<script src="legacy_stream_compat.js?v=2fa1a62bd17d"></script><script src="legacy_text_input.js"></script><script src="legacy_social_auth.js"></script><style>
+<script src="legacy_stream_compat.js?v=5d48786e82c1"></script><script src="legacy_text_input.js"></script><script src="legacy_social_auth.js"></script><style>
 #legacy-web-loading{position:fixed;inset:0;z-index:10000;pointer-events:none;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden}
 #legacy-web-loading img{width:100%;height:100%;object-fit:cover}
 #legacy-web-loading .ok-mask{position:absolute;inset:66% 0 0;background:linear-gradient(to bottom,transparent 0%,rgba(0,0,0,.75) 55%,#000 100%)}
@@ -465,7 +465,7 @@ const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"e
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 (() => {
-  const busted = 'index.pck?v=' + "2fa1a62bd17d";
+  const busted = 'index.pck?v=' + "5d48786e82c1";
   const preload = engine.preloadFile.bind(engine);
   GODOT_CONFIG.fileSizes[busted] = GODOT_CONFIG.fileSizes['index.pck'];
   engine.preloadFile = (file, path) => preload(file === 'index.pck' ? busted : file, path || file);
